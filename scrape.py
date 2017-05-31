@@ -67,8 +67,8 @@ rate_limiting_delay_seconds = 1
 # Filename characters are deleted from file names
 # File path characters are only deleted from entire/complete file paths
 # I may have missed one of two. 
-invalid_path_characters = [':', ',', '*', '?', '"']
-invalid_filename_characters = [':', '.', ',', '*', '/', '\\', '?', '"']
+invalid_path_characters = [':', ',', '*', '?', '"', '<', '>', '\t', '`', '´', '|']
+invalid_filename_characters = [':', '.', ',', '*', '/', '\\', '?', '"', '<', '>', '\t', '`', '´', '|']
 
 # All output files will receive this extension. Since a lot of stuff contains raw HTML, I used HTML
 # as the file type. You may want to change this to .txt though, since many files also contain plaintext bits.
@@ -83,6 +83,11 @@ skip_to_course_with_index = 0
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
 output_folder_name = 'dump/'
+
+# If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
+# The state is stored in a small text file created inside the working directory.
+# Turn this setting on to allow the creation of these checkpoints. They are only really useful if you can fix the issue causing the crash in the first place.
+enable_checkpoints = False
 
 # --- CONSTANTS ---
 
@@ -108,7 +113,9 @@ itslearning_root_url = 'https://ntnu.itslearning.com'
 itslearning_not_found = 'https://ntnu.itslearning.com/not_exist.aspx'
 itslearning_test_base_url = 'https://ntnu.itslearning.com/test/view_survey_list.aspx?TestID='
 old_messaging_api_url = 'https://ntnu.itslearning.com/Messages/InternalMessages.aspx?MessageFolderId={}'
+itslearning_picture_url = 'https://ntnu.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl='
 innsida_login_parameters = {'SessionExpired': 0}
+progress_file_location = os.path.join(os.getcwd(), 'saved_progress_state.txt')
 
 overflow_count = 0
 
@@ -144,6 +151,11 @@ def sanitiseFilename(filename):
 		filename = filename.replace(character, '')
 	return filename
 
+def makeDirectories(path):
+	cleaned_path = sanitisePath(path)
+	os.makedirs(os.path.abspath(cleaned_path))
+	return cleaned_path
+
 # Windows has this amazing feature called "255 character file path limit"
 # Here's a function made specifically for countering this issue.
 def dumpToOverflow(content, filename):
@@ -152,20 +164,21 @@ def dumpToOverflow(content, filename):
 	basename = os.path.basename(sanitisePath(filename))
 	overflowDirectory = output_folder_name + 'Overflowed Files'
 	if not os.path.exists(overflowDirectory):
-		os.makedirs(overflowDirectory)
+		overflowDirectory = makeDirectories(overflowDirectory)
 	total_path = sanitisePath(overflowDirectory + '/' + str(overflow_count) + '_' + basename)
 	with open(total_path, 'wb') as file:
 		file.write(content)
 	print('FILE WAS WRITTEN TO OVERFLOW DIRECTORY - path too long (Windows issue)')
-	print('Original file path:', filename)
-	print('New file path:', total_path)
+	print('Original file path:', filename.encode('ascii', 'ignore'))
+	print('New file path:', total_path.encode('ascii', 'ignore'))
 
 def bytesToTextFile(content, filename):
-	filename = createUniqueFilename(filename)
-	if len(filename) >= 255 and 'Windows' in platform.system():
+	filename = sanitisePath(filename)
+	filename = os.path.abspath(createUniqueFilename(filename))
+	if len(filename) >= 254 and 'Windows' in platform.system():
 		dumpToOverflow(content, filename)
 	else:
-		with open(sanitisePath(filename), 'wb') as file:
+		with open(filename, 'wb') as file:
 			file.write(content)
 
 # Conversion between formats of one library to another
@@ -196,7 +209,7 @@ def download_file(url, destination_directory, session, index=None, filename=None
 			decoded_bytes = base64.b64decode(base64_encoded_file_contents)
 			bytesToTextFile(decoded_bytes, destination_directory + '/' + base64_encoded_file_contents[0:10] + '.' + extension)
 		else:
-			print('FAILED TO DOWNLOAD FILE (INVALID URL):', url)
+			print('FAILED TO DOWNLOAD FILE (INVALID URL):', url.encode('ascii', 'ignore'))
 		return
 	
 	# If links are not directed to it's learning, the header format might be different
@@ -227,8 +240,10 @@ def download_file(url, destination_directory, session, index=None, filename=None
 	
 	print('\tDownloaded', filename.encode('ascii', 'ignore'))
 	if not os.path.exists(destination_directory):
-		os.makedirs(destination_directory)
+		destination_directory = makeDirectories(destination_directory)
 
+
+	filename = sanitisePath(filename)
 	total_file_name = os.path.abspath(sanitisePath(destination_directory) + "/" + filename)
 	total_file_name = createUniqueFilename(total_file_name)
 	if len(total_file_name) >= 255 and 'Windows' in platform.system():
@@ -244,7 +259,7 @@ def loadPaginationPage(page_url, current_page_document, backpatch_character_inde
 	next_page_button = current_page_document.find_class('previous-next')
 	found_next_button = False
 	for element in next_page_button:
-		if len(element) > 0 and element[0].get('title') == 'Next':
+		if len(element) > 0 and (element[0].get('title') == 'Next' or element[0].get('title') == 'Neste'):
 			next_page_button = element
 			found_next_button = True
 			break
@@ -296,14 +311,14 @@ def processTest(pathThusFar, testURL, session):
 	test_document = fromstring(test_response.text)
 	
 	test_title = test_document.find_class('ccl-pageheader')[0][0].text_content()
-	print('\tDownloading test/survey:', test_title)
+	print('\tDownloading test/survey:', test_title.encode('ascii', 'ignore'))
 
 	dumpDirectory = pathThusFar + '/Test - ' + test_title
 	dumpDirectory = sanitisePath(dumpDirectory)
-	os.makedirs(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
 
 	manualDumpDirectory = dumpDirectory + '/Explicit dump'
-	os.makedirs(manualDumpDirectory)
+	manualDumpDirectory = makeDirectories(manualDumpDirectory)
 
 	try:
 		# If we have access to downloading all results, we do so here.
@@ -330,7 +345,7 @@ def processTest(pathThusFar, testURL, session):
 				continue
 
 			index_offset = 0
-			if len(table_entry_element[0]) > 0 and 'check' in table_entry_element[0][0].get('id'):
+			if len(table_entry_element[0]) > 0 and table_entry_element[0][0].get('id') is not None and 'check' in table_entry_element[0][0].get('id'):
 				index_offset = 1
 
 			entry_name = table_entry_element[0 + index_offset].text_content()
@@ -379,11 +394,11 @@ def processNote(pathThusFar, noteURL, session):
 	note_title_node = note_document.find_class('ccl-pageheader')[0]
 	note_title = sanitiseFilename(note_title_node[0].text_content())
 	
-	print("\tDownloaded note:", note_title)
+	print("\tDownloaded note:", note_title.encode('ascii', 'ignore'))
 
 	dumpDirectory = pathThusFar + '/Note - ' + note_title
 	dumpDirectory = sanitisePath(dumpDirectory)
-	os.makedirs(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
 
 	note_content_div = note_document.find_class('h-userinput')[0]
 
@@ -406,7 +421,11 @@ def processWeblink(pathThusFar, weblinkPageURL, link_title, session):
 	weblink_header_document = fromstring(weblink_header_response.text)
 
 	link_info_node = weblink_header_document.find_class('frameheaderinfo')[0]
-	weblink_url = etree.tostring(link_info_node[0][1], encoding='utf-8')
+	try:
+		weblink_url = etree.tostring(link_info_node[0][1], encoding='utf-8')
+	except IndexError:
+		# Some older versions have some comment/section/other cruft. It's hard to tell how to get the info out consistently, so let's try one way and hope for the best.
+		weblink_url = etree.tostring(link_info_node.find_class('standardfontsize')[0][1], encoding='utf-8')
 
 	link_title = sanitiseFilename(link_title)
 
@@ -420,13 +439,30 @@ def processLearningToolElement(pathThusFar, elementURL, session):
 
 	element_title = element_document.get_element_by_id('ctl00_PageHeader_TT').text
 	element_title = sanitiseFilename(element_title)
-	print('\tDownloaded Learning Tool Element: ', element_title)
+	print('\tDownloaded Learning Tool Element: ', element_title.encode('ascii', 'ignore'))
 
 	frameSrc = element_document.get_element_by_id('ctl00_ContentPlaceHolder_ExtensionIframe').get('src')
 
 	frame_content_response = session.get(frameSrc, allow_redirects=True)
 	bytesToTextFile(frame_content_response.content, pathThusFar + '/Learning Tool Element - ' + element_title + output_text_extension)
 
+def processPicture(pathThusFar, pictureURL, session):
+	picture_response = session.get(pictureURL, allow_redirects=True)
+	picture_document = fromstring(picture_response.text)
+
+	element_title = picture_document.find_class('ccl-pageheader')[0].text_content()
+	element_title = sanitiseFilename(element_title)
+	print('\tDownloaded Picture:', element_title.encode('ascii', 'ignore'))
+
+	dumpDirectoryPath = pathThusFar + '/Picture - ' + element_title
+	dumpDirectoryPath = makeDirectories(dumpDirectoryPath)
+
+	image_base_element = picture_document.find_class('itsl-formbox')[0]
+	imageURL = itslearning_root_url + image_base_element[0][0].get('src')
+	download_file(imageURL, dumpDirectoryPath, session)
+
+	description_text = etree.tostring(image_base_element[2], encoding='utf-8')
+	bytesToTextFile(description_text, dumpDirectoryPath + "/caption" + output_text_extension)
 
 def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 	print("\tDownloading thread:", postTitle.encode('ascii', 'ignore'))
@@ -450,16 +486,28 @@ def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 	completeDumpFile = sanitisePath(completeDumpFile)
 
 	fileContents = ''
+	tags_to_next_entry = 0
 
 	for index, post_tag in enumerate(post_table_root):
-		if index % 3 != 0:
+		if tags_to_next_entry != 0:
 			# Each post is 3 tags
+			tags_to_next_entry -= 1
 			continue
 		
+		tags_to_next_entry = 2
+
 		fileContents += '-------------------------------------------------------------------------\n'
 
 		post_contents_tag = post_tag.getnext()
-		footer_tag = post_contents_tag.getnext()
+
+		is_post_deleted = 'deleted' in post_contents_tag[0][0].get('class')
+
+		if is_post_deleted:
+			# Deleted posts do not have a third footer entry like regular posts do, so we move on the the next page 1 tag earlier.
+			tags_to_next_entry -= 1			
+
+		if not is_post_deleted:
+			footer_tag = post_contents_tag.getnext()
 
 		try:
 			author = 'Author: ' + post_tag[0][2][0].text
@@ -472,9 +520,13 @@ def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 		for image_tag in post_contents_tag[0][0].iterfind(".//img"):
 			imageDumpDirectory = pathThusFar + '/Attachments'
 			if not os.path.exists(imageDumpDirectory):
-				os.makedirs(imageDumpDirectory)
+				imageDumpDirectory = makeDirectories(imageDumpDirectory)
 
 			image_URL = image_tag.get('src')
+
+			# For some reason there can be images containing nothing on a page. No idea why.
+			if image_URL is None: 
+				continue
 
 			# Special case for relative URL's: drop the It's Learning root URL in front of it
 			if not image_URL.startswith('http'):
@@ -484,7 +536,10 @@ def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 
 			delay()
 
-		timestamp = footer_tag[0][0][0].text.strip()
+		if not is_post_deleted:
+			timestamp = footer_tag[0][0][0].text.strip()
+		else:
+			timestamp = ''
 
 		fileContents += author + '\n' + timestamp + '\n\n' + post_content + '\n\n'
 
@@ -500,11 +555,11 @@ def processDiscussionForum(pathThusFar, discussionURL, session):
 	# They are sooo inconsistent with these conventions.
 	discussion_title = sanitiseFilename(discussion_document.get_element_by_id('ctl05_TT').text)
 
-	print("\tDownloaded discussion:", discussion_title)
+	print("\tDownloaded discussion:", discussion_title.encode('ascii', 'ignore'))
 
 	discussionDumpDirectory = pathThusFar + '/Discussion - ' + discussion_title
 	discussionDumpDirectory = sanitisePath(discussionDumpDirectory)
-	os.makedirs(discussionDumpDirectory)
+	discussionDumpDirectory = makeDirectories(discussionDumpDirectory)
 
 
 	# hacky way of retrieving the discussion ID, which we need for fetching the threads.
@@ -518,7 +573,7 @@ def processDiscussionForum(pathThusFar, discussionURL, session):
 	while pages_remaining:
 
 		nextThreadElement = discussion_document.get_element_by_id('Threads_' + str(threadID))
-		if nextThreadElement[0].text is None or not nextThreadElement[0].text.startswith('No threads'):
+		if nextThreadElement[0].text is None or (not nextThreadElement[0].text.startswith('No threads') and not nextThreadElement[0].text.startswith('Ingen hovedinnlegg')):
 			while nextThreadElement is not None and nextThreadElement != False:
 				postURL = nextThreadElement[1][0].get('href')
 				postTitle = nextThreadElement[1][0].text
@@ -544,7 +599,7 @@ def processDiscussionForum(pathThusFar, discussionURL, session):
 
 
 def processAssignment(pathThusFar, assignmentURL, session):
-	print("\tDownloading assignment:", assignmentURL)
+	print("\tDownloading assignment:", assignmentURL.encode('ascii', 'ignore'))
 	assignment_response = session.get(assignmentURL, allow_redirects=True)
 	assignment_document = fromstring(assignment_response.text)
 	#writeHTML(assignment_document, 'output.html')
@@ -553,7 +608,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 
 	dumpDirectory = pathThusFar + '/Assignment - ' + assignment_title
 	dumpDirectory = sanitisePath(dumpDirectory)
-	os.makedirs(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
 
 	assignment_answer_table = assignment_document.find_class('itsl-assignment-answer')
 	
@@ -584,7 +639,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 	# Download own submission, but only if assignment was answered
 	if assignment_answer_table:
 		answerDumpDirectory = dumpDirectory + '/Own answer'
-		os.makedirs(answerDumpDirectory)
+		answerDumpDirectory = makeDirectories(answerDumpDirectory)
 
 		# For some reason not all answers have a tbody tag.
 		assignment_answer_root = assignment_answer_table[0]
@@ -627,7 +682,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 		
 
 		student_submissions = dumpDirectory + '/Student answers'
-		os.makedirs(student_submissions)
+		student_submissions = makeDirectories(student_submissions)
 
 		# Index 0 is the table header, which we skip
 
@@ -703,7 +758,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				except IndexError:
 					details_page_url = None
 
-				has_submitted = submission_time is not None and not 'Not submitted' in submission_time
+				has_submitted = submission_time is not None and not 'Not submitted' in submission_time and not 'Ikke levert' in submission_time
 				if submission_time is None:
 					submission_time = 'Not submitted.'
 				if review_date is None:
@@ -730,7 +785,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					comment_field_contents = convert_html_content(etree.tostring(comment_field_element).decode('utf-8'))
 				
 				answer_directory = student_submissions + '/' + sanitiseFilename(students[0])
-				os.makedirs(answer_directory)
+				answer_directory = makeDirectories(answer_directory)
 
 				# Write out assessment details to a file
 				answer_info = 'Students:\n'
@@ -809,11 +864,11 @@ def processFile(pathThusFar, fileURL, session):
 		
 		download_file('https://ntnu.itslearning.com' + file_response.text[link_start_index:link_end_index], pathThusFar, session, file_index)
 
-def processFolder(pathThusFar, folderURL, session):
+def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [], level = 0, catch_up_state = None):
 	print("\tDumping folder: ", pathThusFar.encode('ascii', 'ignore'))
 	pathThusFar = sanitisePath(pathThusFar)
 	if not os.path.exists(pathThusFar):
-		os.makedirs(pathThusFar)
+		pathThusFar = makeDirectories(pathThusFar)
 
 	folder_response = session.get(folderURL, allow_redirects=True)
 	#writeHTML(folder_response, 'output.html')
@@ -832,12 +887,29 @@ def processFolder(pathThusFar, folderURL, session):
 
 	for index, folder_contents_entry in enumerate(folder_contents_tbody):
 		
+		if catch_up_state is not None:
+			target_course_id = catch_up_state[0]
+			target_folder_state = catch_up_state[1]
+			# We only want to fast-forward within the course we're catching up to
+			if target_course_id == courseIndex and index < len(target_folder_state) and index < target_folder_state[level]:
+				print('\tSkipping item to resume from saved state.')
+				continue
+
+		# Write the current status file (saves progress)
+		if enable_checkpoints:
+			if os.path.exists(progress_file_location):
+				os.remove(progress_file_location)
+
+			progress_file_contents = (str(courseIndex) + '\n' + ', '.join([str(i) for i in folder_state + [index]])).encode('utf-8')
+			with open(progress_file_location, 'wb') as state_file:
+				state_file.write(progress_file_contents)
+
 		item_name = folder_contents_entry[item_title_column][0].text
 		item_url = folder_contents_entry[item_title_column][0].get('href')
 
 		if item_url.startswith('/Folder'):
 			folderURL = itslearning_folder_base_url + item_url.split('=')[1]
-			processFolder(pathThusFar + "/Folder - " + item_name, folderURL, session)
+			processFolder(pathThusFar + "/Folder - " + item_name, folderURL, session, courseIndex, folder_state + [index], level + 1)
 		elif item_url.startswith('/File'):
 			pass
 			processFile(pathThusFar, itslearning_file_base_url + item_url.split('=')[1], session)
@@ -859,8 +931,11 @@ def processFolder(pathThusFar, folderURL, session):
 		elif item_url.startswith('/test'):
 			pass
 			processTest(pathThusFar, itslearning_test_base_url + item_url.split('=')[1], session)
+		elif item_url.startswith('/picture'):
+			pass
+			processPicture(pathThusFar, itslearning_picture_url.format(item_url.split('=')[1]), session)
 		else:
-			print('Unknown URL:', item_url)
+			print('Warning: Skipping unknown URL:', item_url.encode('ascii', 'ignore'))
 
 		# Ensure some delay has occurred so that we are not spamming when querying lots of empty folders.
 		delay()
@@ -875,9 +950,9 @@ def processMessaging(pathThusFar, session):
 	messageBatch = loadMessagingPage(batchIndex, session)
 
 	dumpDirectory = pathThusFar + 'Messaging/New API'
-	os.makedirs(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
 	attachmentsDirectory = dumpDirectory + '/Attachments'
-	os.makedirs(attachmentsDirectory)
+	attachmentsDirectory = makeDirectories(attachmentsDirectory)
 
 	print('Downloading messages (sent through the new API)')
 
@@ -909,7 +984,7 @@ def processMessaging(pathThusFar, session):
 	print('Downloading messages (send through the old API)')
 
 	dumpDirectory = pathThusFar + 'Messaging/Old API'
-	os.makedirs(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
 	
 	
 	folderID = 1
@@ -918,12 +993,12 @@ def processMessaging(pathThusFar, session):
 	while messaging_response.url != itslearning_not_found:
 		inbox_document = fromstring(messaging_response.text)
 		inbox_title = inbox_document.get_element_by_id('ctl05_TT').text_content()
-		print('\tAccessing folder {}'.format(inbox_title))
+		print('\tAccessing folder {}'.format(inbox_title).encode('ascii', 'ignore'))
 		
 		boxDirectory = dumpDirectory + '/' + sanitiseFilename(inbox_title)
-		os.makedirs(boxDirectory)
+		boxDirectory = makeDirectories(boxDirectory)
 		attachmentsDirectory = boxDirectory + '/Attachments'
-		os.makedirs(attachmentsDirectory)
+		attachmentsDirectory = makeDirectories(attachmentsDirectory)
 
 		pagesRemain = True
 		message_index = 1
@@ -973,7 +1048,7 @@ def processMessaging(pathThusFar, session):
 						if has_attachment:
 							attachment_filename = message_header_element[2][1][0].text_content()
 							message_attachment_url = message_header_element[2][1][0].get('href')
-							download_file(itslearning_root_url + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filenamem, disableFilenameReencode=True)
+							download_file(itslearning_root_url + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
 
 					message_file_contents = 'From: ' + message_sender + '\n'
 					message_file_contents = 'To: ' + message_recipient + '\n'
@@ -1011,7 +1086,7 @@ def processMessaging(pathThusFar, session):
 def dumpSingleBulletin(raw_page_text, bulletin_element, dumpDirectory, bulletin_index):
 	# Post data
 	author = bulletin_element.find_class('itsl-light-bulletins-person-name')[0][0][0].text_content()
-	print('\tBulletin by', author)
+	print('\tBulletin by', author.encode('ascii', 'ignore'))
 	post_content = convert_html_content(bulletin_element.find_class('h-userinput itsl-light-bulletins-list-item-text')[0].get('data-text'))
 
 	bulletin_file_content = 'Author: ' + author + '\n\n' + post_content
@@ -1086,11 +1161,11 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 		bulletin_list_element = bulletin_document.get_element_by_id('ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl03_CT')[0][0]
 
 		# Don't dump bulletins if there aren't any
-		if 'No bulletins' in bulletin_list_element[0].text_content():
+		if 'No bulletins' in bulletin_list_element[0].text_content() or 'Ingen oppslag' in bulletin_list_element[0].text_content():
 			return
 
 		dumpDirectory = pathThusFar + '/Bulletins'
-		os.makedirs(dumpDirectory)
+		dumpDirectory = makeDirectories(dumpDirectory)
 
 		bulletin_id = 0
 
@@ -1126,54 +1201,57 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 				dumpSingleBulletin(additional_bulletins_response.text, bulletin_element, dumpDirectory, bulletin_id)
 
 			delay()
-	else:
+	bulletin_list_elements1 = bulletin_document.xpath('//div[@id = $elementid]', elementid = 'ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl04_CT')
+	bulletin_list_elements2 = bulletin_document.xpath('//div[@id = $elementid]', elementid = 'ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl03_CT')
+	bulletin_list_elements = [i.find_class('itsl-cb-news-old-bulletin-list') for i in (bulletin_list_elements1 + bulletin_list_elements2)]
+	bulletin_list_elements = [item for sublist in bulletin_list_elements for item in sublist]
+
+	text_elements = [i for i in (bulletin_list_elements1 + bulletin_list_elements2) if 'ilw-cb-text' in i.getparent().getparent().get('class')]
+
+	is_old_style_bulletin = len(bulletin_list_elements) > 0 or len(text_elements) > 0
+
+	if is_old_style_bulletin:
 		# Some pages seem to be using one or the other, or both. A slow migration thing perhaps?
 		
 		message_count_thus_far = 0
+		dumpDirectory = pathThusFar + '/Bulletins'
 
-		bulletin_list_elements1 = bulletin_document.xpath('//div[@id = $elementid]', elementid = 'ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl04_CT')
-		bulletin_list_elements2 = bulletin_document.xpath('//div[@id = $elementid]', elementid = 'ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl03_CT')
+		for text_element in text_elements:
+			# We found a text message
+			print('\tFound text message')
+			message_count_thus_far += 1
 
-		bulletin_list_elements = bulletin_list_elements1 + bulletin_list_elements2
+			try:
+				message_title = text_element.getparent().getprevious()[0][0][0].text_content()
+				message_content = convert_html_content(etree.tostring(text_element[0], encoding='utf-8').decode('utf-8')).strip()
+				
+				textDumpDirectory = dumpDirectory + '/Text messages'
+				if not os.path.exists(textDumpDirectory):
+					textDumpDirectory = makeDirectories(textDumpDirectory)
+
+				message_file_contents = message_title + '\n\n' + message_content
+			except IndexError:
+				print('Failed to dump text message. Might be some other old-style course page element the script doesn\'t know about.')
+				return
+
+			bytesToTextFile(message_file_contents.encode('utf-8'), textDumpDirectory + '/Message ' + str(message_count_thus_far) + output_text_extension)
 
 		for bulletin_list_element in bulletin_list_elements:
-
-			dumpDirectory = pathThusFar + '/Bulletins'
 
 			# Special case for an occurrence of an empty element.
 			if len(bulletin_list_element) == 0 or len(bulletin_list_element[0]) == 0:
 				return
-			elif not (bulletin_list_element[0][1].tag == 'ul' and 'itsl-cb-news-old-bulletin-list' in bulletin_list_element[0][1].get('class')):
-				# We found a text message
-				print('\tFound text message')
-				message_count_thus_far += 1
-
-				try:
-					message_title = bulletin_list_element.getparent().getprevious()[0][0][0].text_content()
-					message_content = convert_html_content(etree.tostring(bulletin_list_element[0], encoding='utf-8').decode('utf-8')).strip()
-					
-					textDumpDirectory = dumpDirectory + '/Text messages'
-					if not os.path.exists(textDumpDirectory):
-						os.makedirs(textDumpDirectory)
-
-					message_file_contents = message_title + '\n\n' + message_content
-				except IndexError:
-					print('Failed to dump text message. Might be some other old-style course page element the script doesn\'t know about.')
-					return
-
-				bytesToTextFile(message_file_contents.encode('utf-8'), textDumpDirectory + '/Message ' + str(message_count_thus_far) + output_text_extension)
-
-			else:
+			elif bulletin_list_element.tag == 'ul':
 				# We found a bulletin list
 
-				if 'No bulletins' in bulletin_list_element[0][0].text_content():
+				if 'No bulletins' in bulletin_list_element[0].text_content() or 'Ingen oppslag' in bulletin_list_element[0].text_content():
 					return
 
 				if not os.path.exists(dumpDirectory):
-					os.makedirs(dumpDirectory)
+					dumpDirectory = makeDirectories(dumpDirectory)
 
 				bulletin_id = 0
-				for list_element in bulletin_list_element[0][1]:
+				for list_element in bulletin_list_element:
 					bulletin_id += 1
 
 					bulletin_subject = convert_html_content(list_element[0].text_content()).strip()
@@ -1186,7 +1264,7 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 					bulletin_file_content += 'Subject: ' + bulletin_subject + '\n'
 					bulletin_file_content += 'Message:\n\n' + bulletin_message
 
-					print('\tSaving bulletin by:', bulletin_author)
+					print('\tSaving bulletin by:', bulletin_author.encode('ascii', 'ignore'))
 
 					file_path = dumpDirectory + '/Bulletin ' + str(bulletin_id) + output_text_extension
 
@@ -1218,6 +1296,19 @@ if os.path.exists(output_folder_name):
 	if not decision == 'delete':
 		sys.exit("Download Aborted.")
 	rmtree(output_folder_name)
+
+catch_up_directions = None
+if os.path.exists(progress_file_location):
+	print('It appears you have run this script previously. Would you like to continue where you left off?')
+	print('Type "continue" to fast-forward to where you left off. Type anything else to start over.')
+	decision = input('Confirm fast-forward: ')
+	if decision == 'continue':
+		print('Loading saved state file.')
+		with open(progress_file_location) as input_file:
+			file_contents = input_file.readlines() 
+		state_course_id = int(file_contents[0])
+		state_folder_state = [int(i) for i in file_contents[1].split(', ')]
+		catch_up_directions = [state_course_id, state_folder_state]
 
 with requests.Session() as session:
 
@@ -1286,13 +1377,15 @@ with requests.Session() as session:
 	print('Found', str(len(courseList)), 'courses.')
 
 	# If it is desirable to skip to a particular course, also skip downloading the messages again
-	if skip_to_course_with_index == 0:
+	if skip_to_course_with_index == 0 and catch_up_directions is None:
 		processMessaging(pathThusFar, session)
 	
 
 	for courseIndex, courseURL in enumerate(courseList):
 		print('Dumping course with ID {} ({} of {}): {}'.format(courseURL, (courseIndex + 1), len(courseList), courseNameDict[courseURL].encode('ascii', 'ignore')))
 		if courseIndex + 1 < skip_to_course_with_index:
+			continue
+		if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
 			continue
 
 		course_response = session.get(itslearning_course_base_url + "?LocationID=" + courseURL + "&LocationType=1", allow_redirects=True)
@@ -1305,7 +1398,7 @@ with requests.Session() as session:
 
 		processBulletins(course_folder, itslearning_bulletin_base_url + courseURL, session, courseURL)
 
-		processFolder(course_folder, root_folder_url, session)
+		processFolder(course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
 
 	print('Done. Everything was downloaded successfully!')
 
