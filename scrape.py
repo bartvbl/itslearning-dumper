@@ -1000,7 +1000,13 @@ def processMessaging(pathThusFar, session):
 		attachmentsDirectory = boxDirectory + '/Attachments'
 		attachmentsDirectory = makeDirectories(attachmentsDirectory)
 
-		pagesRemain = True
+		first_message_entry_text = inbox_document.get_element_by_id('_table_1')
+		no_messages_indication_present = 'No messages' in first_message_entry_text or 'Ingen meldinger' in first_message_entry_text
+
+		if no_messages_indication_present:
+			print('\tNo messages present in folder.')
+
+		pagesRemain = not no_messages_indication_present
 		message_index = 1
 		message_index_on_page = 1
 		while pagesRemain:
