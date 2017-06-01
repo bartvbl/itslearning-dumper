@@ -725,6 +725,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				plagiarism_index_offset = 0
 				if has_plagiarism_report:
 					plagiarism_index_offset = 1
+				score_index_offset = 1
 
 				#print('plagiarism offset:', plagiarism_index_offset)
 
@@ -741,7 +742,12 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				# Column 5: Score
 				# If nobody answered the assignment, all of the next elements are not present and thus will fail
 				try:
-					score = submission_element[5 + no_group_index_offset].text
+					if not 'Show' in submission_element[5 + no_group_index_offset].text_content():
+						score = submission_element[5 + no_group_index_offset].text
+					else:
+						# We have hit the assignment details link. This requires adjusting the offset
+						score_index_offset = 0
+
 				except IndexError:
 					score = None
 				# Column 6: Plagiarism status
@@ -754,7 +760,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					plagiarism_status = None
 				# Column 7: Show (link to details page)
 				try:
-					details_page_url = itslearning_root_url + submission_element[6 + no_group_index_offset + plagiarism_index_offset][0].get('href')
+					details_page_url = itslearning_root_url + submission_element[5 + score_index_offset + no_group_index_offset + plagiarism_index_offset][0].get('href')
 				except IndexError:
 					details_page_url = None
 
