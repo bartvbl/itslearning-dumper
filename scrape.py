@@ -1000,7 +1000,7 @@ def processMessaging(pathThusFar, session):
 		attachmentsDirectory = boxDirectory + '/Attachments'
 		attachmentsDirectory = makeDirectories(attachmentsDirectory)
 
-		first_message_entry_text = inbox_document.get_element_by_id('_table_1')
+		first_message_entry_text = inbox_document.get_element_by_id('_table_1').text_content()
 		no_messages_indication_present = 'No messages' in first_message_entry_text or 'Ingen meldinger' in first_message_entry_text
 
 		if no_messages_indication_present:
