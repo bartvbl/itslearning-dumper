@@ -747,6 +747,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					else:
 						# We have hit the assignment details link. This requires adjusting the offset
 						score_index_offset = 0
+						score = None
 
 				except IndexError:
 					score = None
