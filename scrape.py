@@ -46,16 +46,12 @@ import json
 import base64
 from shutil import rmtree
 from time import sleep
+import getpass
 from urllib.parse import urlparse
 # Requires Python 3.4
 from pathlib import Path
 
 # --- SETTINGS ---
-
-# Enter your username and password here, just as you would use them to log into innsida.
-# Note that the requests library is awesome and sends everything over HTTPS.
-ntnu_user = ''
-ntnu_pass = ''
 
 # I've sprinkled delays around the code to ensure the script isn't spamming requests at maximum rate.
 # Each time such a delay occurs, it waits for this many seconds.
@@ -1331,17 +1327,30 @@ with requests.Session() as session:
 	login_page = fromstring(response.text)
 
 	login_form = login_page.forms[0]
-	
-	login_form.fields['feidename'] = ntnu_user
-	login_form.fields['password'] = ntnu_pass
 
-	login_form_dict = convert_lxml_form_to_requests(login_form)
+	credentials_correct = False
 
-	feide_login_submit_url = feide_base_url + login_form.action
+	while not credentials_correct:
+		print('Please enter your NTNU/FEIDE username and password.')
 
-	print('Sending login data')
+		username = input('Username: ')
+		password = getpass.getpass(prompt='Password: ')
+		
+		login_form.fields['feidename'] = username
+		login_form.fields['password'] = password
 
-	relay_response = session.post(feide_login_submit_url, data = login_form_dict)
+		login_form_dict = convert_lxml_form_to_requests(login_form)
+
+		feide_login_submit_url = feide_base_url + login_form.action
+
+		print('Sending login data')
+
+		relay_response = session.post(feide_login_submit_url, data = login_form_dict)
+
+		if fromstring(relay_response.text).forms[0].action.startswith('?'):
+			print('Incorrect credentials!')
+		else:
+			credentials_correct = True
 
 	innsida_main_page = do_feide_relay(relay_response)
 
