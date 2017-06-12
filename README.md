@@ -20,8 +20,7 @@ The following elements are downloaded by this script. Note that It's Learning ha
 
 1. Install Python 3.4 or above (latest at the time of writing is 3.6). Make sure to check the "add to path" and "install pip" boxes in the installer.
 2. Install two python packages using pip by running `pip install lxml requests` on the command line.
-3. Open the script (scrape.py), scroll down to the settings area (indicated with comments), and look for the variables `ntnu_user` and `ntnu_pass`. Insert your NTNU/Innsida credentials here.
-4. Run the script and let it do its thing by running `python scrape.py`.
+3. Run the script and let it do its thing by running `python scrape.py`. It will ask you for your username and password when you start it.
 
 You might need to change your It's Learning language to English. Unfortunately I had to rely on written text in places, and those depend on the language setting.
 
