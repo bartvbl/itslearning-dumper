@@ -49,25 +49,15 @@ If you've never touched Python before, here's how to get the script running on W
 
 6. Open the downloaded ZIP file, and find the "scrape.py" file in the "itslearning-dumper-master" folder. Extract this file to a folder of your choice.
 
-7. Open up the scrape.py file in a text editor (not Word, something like Notepad or Notepad++). We'll have to make a few edits before we can get started.
+7. (Optional) Open up the scrape.py file in a text editor (not Word, something like Notepad or Notepad++). We'll have to make a few edits before we can get started.
 
-8. Find the lines saying:
-
-        ntnu_user = ''
-        ntnu_pass = ''
-
-9. In between the two '' quotation marks, put in your NTNU username and password, respectively. Don't worry, the script uses an encrypted connection to talk with FEIDE and It's Learning. You might want to remove them again when you're done though. Here's and example of what it could look like when you're done:
-
-        ntnu_user = 'firstnamelastname'
-        ntnu_pass = 'hunter2'
-
-10. Find the line in the scrape.py file saying:
+8. (Optional) Find the line in the scrape.py file saying:
 
         output_folder_name = 'dump/'
 
-11. If you look in Computer, it shows the available hard drives. Windows always has a drive named "C", but there may be others too. If so, find one which has a decent amount of space available (some GB worth at least). Pick a drive and note its drive letter. This should preferably be a drive that is not "C" and has available space as I mentioned previously, but if you don't have anything else, fall back on to "C".
+9. (Optional) If you look in Computer, it shows the available hard drives. Windows always has a drive named "C", but there may be others too. If so, find one which has a decent amount of space available (some GB worth at least). Pick a drive and note its drive letter. This should preferably be a drive that is not "C" and has available space as I mentioned previously, but if you don't have anything else, fall back on to "C".
 
-12. Change the line mentioned in step 10 to the line shown below, where you replace "{drive letter}" with the drive letter you picked. 
+10. (Optional) Change the line mentioned in step 10 to the line shown below, where you replace "{drive letter}" with the drive letter you picked. 
 
         output_folder_name = '{drive letter}:/dump/'
 
@@ -75,21 +65,23 @@ If you've never touched Python before, here's how to get the script running on W
 
         output_folder_name = 'D:/dump/'
 
-13. Save the file. Close the editor.
+11. (Optional) Save the file. Close the editor.
 
-14. Navigate to the folder which contains the scrape.py file in Explorer
+12. Navigate to the folder which contains the scrape.py file in Explorer
 
-15. Make sure no file in the folder is selected. Hold Shift, and right click on any place in the file window that is not occupied by a file. In the context menu that pops up, there should be an entry that says "Open command window here". A command prompt comes up.
+13. Make sure no file in the folder is selected. Hold Shift, and right click on any place in the file window that is not occupied by a file. In the context menu that pops up, there should be an entry that says "Open command window here". A command prompt comes up.
 
-16. In the command prompt window, write:
+14. In the command prompt window, write:
 
         pip install requests lxml
 
     And press enter. This installs two libraries which the script uses.
 
-17. We're now ready to run the script. In the command prompt window, write:
+15. We're now ready to run the script. In the command prompt window, write:
 
         python scrape.py
+        
+Upon starting, it will ask you for your username and password. You should use your FEIDE/NTNU credentials for this. Type them into the command prompt window, and press enter. Note that when typing in your password, the characters are hidden.
 
 And hope for the best. The script will print out what it's doing on the command prompt. It will show a message when it's done.
 
