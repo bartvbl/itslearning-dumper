@@ -33,6 +33,68 @@ The script contains a section near the top devoted to special settings variables
 * `output_text_extension`: Determines the extension output text files have. The specific format of the contents of these is different in most cases, but is in most cases plaintext with fragments of HTML. You might want to change this to `.txt` if preferable.
 * `enable_checkpoints`: Enabling this will create a small text file which keeps track of where the script left off. If the download takes too long, you can simply quit the script, and it will allow you to catch up to where you left off (it does not catch up to the exact point, but close enough).
 
+## Beginner's User Guide
+
+If you've never touched Python before, here's how to get the script running on Windows:
+
+1. Go to: https://www.python.org/
+
+2. Hover over the "downloads" item in the top bar of the page. A menu with some links pops out, with two "quick links" on the right. One for Python 2.7.13, and one for Python 3.6.1. Click on the Python 3.6.1 link to download it.
+
+3. Run the installer. On the starting page, check "Add Python 3.6 to PATH", and click "Customize installation"
+
+4. Ensure all checkboxes on this page are checked, and click Next. On the next page, click Install. Let the installer run to completion. Click Close when it's done.
+
+5. Download the source code from the GitHub repository I linked using the green "Clone or Download" button, and clicking on "Download ZIP". 
+
+6. Open the downloaded ZIP file, and find the "scrape.py" file in the "itslearning-dumper-master" folder. Extract this file to a folder of your choice.
+
+7. Open up the scrape.py file in a text editor (not Word, something like Notepad or Notepad++). We'll have to make a few edits before we can get started.
+
+8. Find the lines saying:
+
+        ntnu_user = ''
+        ntnu_pass = ''
+
+9. In between the two '' quotation marks, put in your NTNU username and password, respectively. Don't worry, the script uses an encrypted connection to talk with FEIDE and It's Learning. You might want to remove them again when you're done though. Here's and example of what it could look like when you're done:
+
+        ntnu_user = 'firstnamelastname'
+        ntnu_pass = 'hunter2'
+
+10. Find the line in the scrape.py file saying:
+
+        output_folder_name = 'dump/'
+
+11. If you look in Computer, it shows the available hard drives. Windows always has a drive named "C", but there may be others too. If so, find one which has a decent amount of space available (some GB worth at least). Pick a drive and note its drive letter. This should preferably be a drive that is not "C" and has available space as I mentioned previously, but if you don't have anything else, fall back on to "C".
+
+12. Change the line mentioned in step 10 to the line shown below, where you replace "{drive letter}" with the drive letter you picked. 
+
+        output_folder_name = '{drive letter}:/dump/'
+
+    For example, if you picked the "D" drive, you'd end up with this:
+
+        output_folder_name = 'D:/dump/'
+
+13. Save the file. Close the editor.
+
+14. Navigate to the folder which contains the scrape.py file in Explorer
+
+15. Make sure no file in the folder is selected. Hold Shift, and right click on any place in the file window that is not occupied by a file. In the context menu that pops up, there should be an entry that says "Open command window here". A command prompt comes up.
+
+16. In the command prompt window, write:
+
+        pip install requests lxml
+
+    And press enter. This installs two libraries which the script uses.
+
+17. We're now ready to run the script. In the command prompt window, write:
+
+        python scrape.py
+
+And hope for the best. The script will print out what it's doing on the command prompt. It will show a message when it's done.
+
+Good luck!
+
 ## Known Issues
 
 The following issues are known, and will most likely not be fixed:
