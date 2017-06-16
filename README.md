@@ -59,11 +59,11 @@ If you've never touched Python before, here's how to get the script running on W
 
 10. (Optional) Change the line mentioned in step 10 to the line shown below, where you replace "{drive letter}" with the drive letter you picked. 
 
-        output_folder_name = '{drive letter}:/dump/'
+        output_folder_name = '{drive letter}:\\dump\\'
 
     For example, if you picked the "D" drive, you'd end up with this:
 
-        output_folder_name = 'D:/dump/'
+        output_folder_name = 'D:\\dump\\'
 
 11. (Optional) Save the file. Close the editor.
 
