@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # A dirty script to pull files from it's learning
 # - Bart van Blokland
 
