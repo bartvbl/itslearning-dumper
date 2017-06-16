@@ -6,8 +6,7 @@
 # USAGE:
 # 0. Install Python 3.x (including pip) if you haven't already
 # 1. Look in the imports section, and install any packages you don't already have (pip commands are listed)
-# 2. Scroll down a few lines to the settings area, and find the variables for your username and password. Put your credentials there.
-# 3. Run the script ('python scrape.py')
+# 2. Run the script ('python scrape.py')
 
 # WHAT IS DOWNLOADED BY THIS SCRIPT?
 # 1. All messages, both through the new and old system, including attachments
@@ -759,7 +758,8 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					plagiarism_status = None
 				# Column 7: Show (link to details page)
 				try:
-					details_page_url = itslearning_root_url + submission_element[5 + score_index_offset + no_group_index_offset + plagiarism_index_offset][0].get('href')
+					# Exploit that the last entry is always the details link
+					details_page_url = itslearning_root_url + submission_element[len(submission_element) - 1][0].get('href')
 				except IndexError:
 					details_page_url = None
 
