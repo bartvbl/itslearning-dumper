@@ -18,6 +18,8 @@ The following elements are downloaded by this script. Note that It's Learning ha
 
 ## Running
 
+For detailed instructions, see the "Beginner's user guide" section below.
+
 1. Install Python 3.4 or above (latest at the time of writing is 3.6). Make sure to check the "add to path" and "install pip" boxes in the installer.
 2. Install two python packages using pip by running `pip install lxml requests` on the command line.
 3. Run the script and let it do its thing by running `python scrape.py`. It will ask you for your username and password when you start it.
@@ -59,11 +61,11 @@ If you've never touched Python before, here's how to get the script running on W
 
 10. (Optional) Change the line mentioned in step 10 to the line shown below, where you replace "{drive letter}" with the drive letter you picked. 
 
-        output_folder_name = '{drive letter}:/dump/'
+        output_folder_name = '{drive letter}:\\dump\\'
 
     For example, if you picked the "D" drive, you'd end up with this:
 
-        output_folder_name = 'D:/dump/'
+        output_folder_name = 'D:\\dump\\'
 
 11. (Optional) Save the file. Close the editor.
 
