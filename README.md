@@ -18,6 +18,10 @@ The following elements are downloaded by this script. Note that It's Learning ha
 
 ## Running
 
+The easiest way of running this script is to head over to the Releases page (see top navigation on this page), and download a build from there.
+
+Alternatively, you can follow the steps below.
+
 For detailed instructions, see the "Beginner's user guide" section below.
 
 1. Install Python 3.4 or above (latest at the time of writing is 3.6). Make sure to check the "add to path" and "install pip" boxes in the installer.
