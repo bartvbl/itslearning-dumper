@@ -713,12 +713,13 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					file_location = file_entry[0][0].get('href')
 					download_file(file_location, answerDumpDirectory, session, file_index)
 			else:
+				for attached_file in entry.find_class('ccl-iconlink'):
+					file_location = attached_file.get('href')
+					download_file(file_location, answerDumpDirectory, session)
 				assessment_file_contents += (entry[0].text + ': ').encode('utf-8') + etree.tostring(entry[1], encoding='utf-8') + '\n'.encode('utf-8')
 		bytesToTextFile(assessment_file_contents, answerDumpDirectory + '/assessment.html')
 
-		for attached_file in assignment_answer_root.find_class('ccl-iconlink'):
-			file_location = attached_file.get('href')
-			download_file(file_location, answerDumpDirectory, session)
+		
 
 	answers_submitted = True
 	try:
@@ -790,7 +791,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				# Column 5: Score
 				# If nobody answered the assignment, all of the next elements are not present and thus will fail
 				try:
-					if not ('Show' in submission_element[5 + no_group_index_offset].text_content() or 'Vis' in submission_element[5 + no_group_index_offset].text_content()]:
+					if not ('Show' in submission_element[5 + no_group_index_offset].text_content() or 'Vis' in submission_element[5 + no_group_index_offset].text_content()):
 						score = submission_element[5 + no_group_index_offset].text
 					else:
 						# We have hit the assignment details link. This requires adjusting the offset
