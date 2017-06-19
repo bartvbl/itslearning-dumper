@@ -29,6 +29,10 @@
 
 # --- IMPORTS ---
 
+# Imports for fixing freezing issues
+from multiprocessing import Queue
+
+
 # Install with "pip install requests"
 import requests
 from requests.exceptions import InvalidURL
@@ -44,6 +48,7 @@ import html
 import sys
 import platform
 import json
+import traceback
 import base64
 from shutil import rmtree
 from time import sleep
@@ -51,6 +56,28 @@ import getpass
 from urllib.parse import urlparse
 # Requires Python 3.4
 from pathlib import Path
+
+# User interface goodies
+import tkinter
+tkinter.Tk().withdraw()
+from tkinter.filedialog import askdirectory
+
+# --- INTRO ---
+
+print('----- It\'s Learning dump script -----')
+print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
+print()
+print('Greetings! This script will help you download your content off of It\'s Learning.')
+print('We\'ll start by selecting a directory where all the files are going to be saved.')
+if os.name == 'nt':
+	print()
+	print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
+	print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
+	print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
+	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
+	print('This will cause the least number of files to overflow.')
+print()
+input('Press Enter to continue and select a directory.')
 
 # --- SETTINGS ---
 
@@ -79,7 +106,22 @@ skip_to_course_with_index = 0
 
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
-output_folder_name = 'dump/'
+is_directory_empty = False
+while not is_directory_empty:
+	output_folder_name = askdirectory()
+	if output_folder_name == '':
+		print('Folder selection cancelled. Aborting.')
+		sys.exit(0)
+	output_folder_name = os.path.abspath(output_folder_name)
+	is_directory_empty = not os.listdir(output_folder_name)
+	if not is_directory_empty:
+		print()
+		print('The selected directory is not empty, which the script needs to work properly.')
+		print('Press enter to try again, and select a new one.')
+		print('You can always create a new directory and select it; that one will always be empty.')
+		print()
+		input('Press Enter to continue and try selecting a directory again.')
+print('Selected output folder:', output_folder_name)
 
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
 # The state is stored in a small text file created inside the working directory.
@@ -88,7 +130,6 @@ enable_checkpoints = False
 
 # --- CONSTANTS ---
 
-computer_vision = 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx?LocationID=64728&LocationType=1'
 innsida = 'https://innsida.ntnu.no'
 feide_base_url = 'https://idp.feide.no/simplesaml/module.php/feide/login.php'
 itslearning_url = 'https://innsida.ntnu.no/sso?target=itslearning'
@@ -128,7 +169,11 @@ def convert_html_content(html_string):
 def sanitisePath(filePath):
 	# I don't care about efficiency.
 	for character in invalid_path_characters:
-		filePath = filePath.replace(character, '')
+		# Fix for absolute paths on windows
+		if os.name == 'nt' and os.path.isabs(filePath) and character == ':':
+			filePath = filePath[0:2] + filePath[2:].replace(character, '')
+		else:
+			filePath = filePath.replace(character, '')
 	filePath = '/'.join([m.strip() for m in filePath.split('/')])
 	return filePath
 
@@ -150,7 +195,8 @@ def sanitiseFilename(filename):
 
 def makeDirectories(path):
 	cleaned_path = sanitisePath(path)
-	os.makedirs(os.path.abspath(cleaned_path))
+	if not os.path.exists(cleaned_path):
+		os.makedirs(os.path.abspath(cleaned_path))
 	return cleaned_path
 
 # Windows has this amazing feature called "255 character file path limit"
@@ -369,7 +415,7 @@ def processTest(pathThusFar, testURL, session):
 		next_page_button = test_document.find_class('previous-next')
 		found_next_button = False
 		for element in next_page_button:
-			if len(element) > 0 and element[0].get('title') == 'Next':
+			if len(element) > 0 and (element[0].get('title') == 'Next' or element[0].get('title') == 'Neste'):
 				next_page_button = element
 				found_next_button = True
 				break
@@ -643,18 +689,16 @@ def processAssignment(pathThusFar, assignmentURL, session):
 		if assignment_answer_root[0].tag == 'tbody':
 			assignment_answer_root = assignment_answer_root[0]
 
+		assessment_file_contents = ''.encode('utf-8')
+
 		for entry in assignment_answer_root:
 
 			if entry is None or entry[0] is None or entry[0].text is None:
 				continue
 
-			if entry[0].text.startswith('Comment'):
-				bytesToTextFile(etree.tostring(entry[1], encoding='utf-8'), answerDumpDirectory + '/comment.html')
-			elif entry[0].text.startswith('Assessment'):
-				bytesToTextFile(entry[1].text.encode('utf-8'), answerDumpDirectory + '/assessment.html')
-			elif entry[0].text.startswith('Answer'):
-				bytesToTextFile(etree.tostring(entry[1], encoding='utf-8'), answerDumpDirectory + '/answer_comment.html')
-			elif entry[0].text.startswith('Files'):
+			
+
+			if entry[0].text.startswith('Files') or entry[0].text.startswith('Filer'):
 				file_list_div = entry[1][0]
 				for index, file_entry in enumerate(file_list_div):
 					if file_entry.tag == 'section':
@@ -668,6 +712,13 @@ def processAssignment(pathThusFar, assignmentURL, session):
 
 					file_location = file_entry[0][0].get('href')
 					download_file(file_location, answerDumpDirectory, session, file_index)
+			else:
+				assessment_file_contents += (entry[0].text + ': ').encode('utf-8') + etree.tostring(entry[1], encoding='utf-8') + '\n'.encode('utf-8')
+		bytesToTextFile(assessment_file_contents, answerDumpDirectory + '/assessment.html')
+
+		for attached_file in assignment_answer_root.find_class('ccl-iconlink'):
+			file_location = attached_file.get('href')
+			download_file(file_location, answerDumpDirectory, session)
 
 	answers_submitted = True
 	try:
@@ -703,11 +754,11 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				#		pass
 						
 				no_group_index_offset = 0
-				if 'No group' in submission_element[2].text_content():
+				if 'No group' in submission_element[2].text_content() or 'Ingen gruppe' in submission_element[2].text_content():
 					no_group_index_offset = 1
-				elif 'Manage' in submission_element[2].text_content():
+				elif 'Manage' in submission_element[2].text_content() or 'Administrer' in submission_element[2].text_content():
 					no_group_index_offset = 1
-				elif 'New group' in submission_element[2].text_content():
+				elif 'New group' in submission_element[2].text_content() or 'Ny gruppe' in submission_element[2].text_content():
 					no_group_index_offset = 1
 
 				#print("Index offset:", no_group_index_offset)
@@ -739,7 +790,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				# Column 5: Score
 				# If nobody answered the assignment, all of the next elements are not present and thus will fail
 				try:
-					if not 'Show' in submission_element[5 + no_group_index_offset].text_content():
+					if not ('Show' in submission_element[5 + no_group_index_offset].text_content() or 'Vis' in submission_element[5 + no_group_index_offset].text_content()]:
 						score = submission_element[5 + no_group_index_offset].text
 					else:
 						# We have hit the assignment details link. This requires adjusting the offset
@@ -867,7 +918,7 @@ def processFile(pathThusFar, fileURL, session):
 			file_index = index
 			print('\tDownloading version {} of {}.'.format(index+1, len(download_link_indices)))
 		
-		download_file('https://ntnu.itslearning.com' + file_response.text[link_start_index:link_end_index], pathThusFar, session, file_index)
+		download_file(itslearning_root_url + file_response.text[link_start_index:link_end_index], pathThusFar, session, file_index)
 
 def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [], level = 0, catch_up_state = None):
 	print("\tDumping folder: ", pathThusFar.encode('ascii', 'ignore'))
@@ -912,35 +963,52 @@ def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [
 		item_name = folder_contents_entry[item_title_column][0].text
 		item_url = folder_contents_entry[item_title_column][0].get('href')
 
-		if item_url.startswith('/Folder'):
-			folderURL = itslearning_folder_base_url + item_url.split('=')[1]
-			processFolder(pathThusFar + "/Folder - " + item_name, folderURL, session, courseIndex, folder_state + [index], level + 1)
-		elif item_url.startswith('/File'):
-			pass
-			processFile(pathThusFar, itslearning_file_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/essay'):
-			pass
-			processAssignment(pathThusFar, itslearning_assignment_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/note'):
-			pass
-			processNote(pathThusFar, itslearning_note_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/discussion'):
-			pass
-			processDiscussionForum(pathThusFar, itslearning_discussion_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/weblink'):
-			pass
-			processWeblink(pathThusFar, itslearning_weblink_base_url + item_url.split('=')[1], item_name, session)
-		elif item_url.startswith('/LearningToolElement'):
-			pass
-			processLearningToolElement(pathThusFar, itslearning_learning_tool_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/test'):
-			pass
-			processTest(pathThusFar, itslearning_test_base_url + item_url.split('=')[1], session)
-		elif item_url.startswith('/picture'):
-			pass
-			processPicture(pathThusFar, itslearning_picture_url.format(item_url.split('=')[1]), session)
-		else:
-			print('Warning: Skipping unknown URL:', item_url.encode('ascii', 'ignore'))
+		try: 
+			if item_url.startswith('/Folder'):
+				folderURL = itslearning_folder_base_url + item_url.split('=')[1]
+				processFolder(pathThusFar + "/Folder - " + item_name, folderURL, session, courseIndex, folder_state + [index], level + 1)
+			elif item_url.startswith('/File'):
+				pass
+				processFile(pathThusFar, itslearning_file_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/essay'):
+				pass
+				processAssignment(pathThusFar, itslearning_assignment_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/note'):
+				pass
+				processNote(pathThusFar, itslearning_note_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/discussion'):
+				pass
+				processDiscussionForum(pathThusFar, itslearning_discussion_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/weblink'):
+				pass
+				processWeblink(pathThusFar, itslearning_weblink_base_url + item_url.split('=')[1], item_name, session)
+			elif item_url.startswith('/LearningToolElement'):
+				pass
+				processLearningToolElement(pathThusFar, itslearning_learning_tool_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/test'):
+				pass
+				processTest(pathThusFar, itslearning_test_base_url + item_url.split('=')[1], session)
+			elif item_url.startswith('/picture'):
+				pass
+				processPicture(pathThusFar, itslearning_picture_url.format(item_url.split('=')[1]), session)
+			else:
+				print('Warning: Skipping unknown URL:', item_url.encode('ascii', 'ignore'))
+		except Exception:
+			print('\n\nSTART OF ERROR INFORMATION\n\n\n\n')
+			traceback.print_exc()
+			print('\n\n\n\nEND OF ERROR INFORMATION')
+			print()
+			print('Oh no! The script crashed while trying to download the following address:')
+			print(item_url)
+			print('Some information regarding the error is shown above.')
+			print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
+			print('Would you like to skip this item and move on?')
+			print('Type \'skip\' if you\'d like to skip this element and continue downloading any remaining elements, or anything else if you\'d like to abort the download.')
+			decision = input('Skip this element? ')
+			if decision != 'skip':
+				print('Download has been aborted.')
+				sys.exit(0)
+
 
 		# Ensure some delay has occurred so that we are not spamming when querying lots of empty folders.
 		delay()
@@ -954,9 +1022,9 @@ def processMessaging(pathThusFar, session):
 	threadIndex = 0
 	messageBatch = loadMessagingPage(batchIndex, session)
 
-	dumpDirectory = pathThusFar + 'Messaging/New API'
+	dumpDirectory = os.path.join(os.path.join(pathThusFar, 'Messaging'), 'New API')
 	dumpDirectory = makeDirectories(dumpDirectory)
-	attachmentsDirectory = dumpDirectory + '/Attachments'
+	attachmentsDirectory = os.path.join(dumpDirectory, 'Attachments')
 	attachmentsDirectory = makeDirectories(attachmentsDirectory)
 
 	print('Downloading messages (sent through the new API)')
@@ -979,7 +1047,7 @@ def processMessaging(pathThusFar, session):
 					download_file(message['AttachmentUrl'], attachmentsDirectory, session, index=None, filename=None)#str(message['InstantMessageThreadId']) + '_' + message['AttachmentName'])
 			thread_title = 'Message thread ' + str(threadIndex) + ' - ' + sanitiseFilename(messageThread['Created']) + '.txt'
 			threadFileContents = threadFileContents.encode('utf-8')
-			bytesToTextFile(threadFileContents, dumpDirectory + '/' + thread_title)
+			bytesToTextFile(threadFileContents, os.path.join(dumpDirectory, thread_title))
 			threadIndex += 1
 
 		delay()
@@ -988,7 +1056,7 @@ def processMessaging(pathThusFar, session):
 
 	print('Downloading messages (send through the old API)')
 
-	dumpDirectory = pathThusFar + 'Messaging/Old API'
+	dumpDirectory = pathThusFar + '/Messaging/Old API'
 	dumpDirectory = makeDirectories(dumpDirectory)
 	
 	
@@ -1242,7 +1310,7 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 
 				message_file_contents = message_title + '\n\n' + message_content
 			except IndexError:
-				print('Failed to dump text message. Might be some other old-style course page element the script doesn\'t know about.')
+				print('Failed to dump text message. This might be some other old-style course page element the script doesn\'t know about.')
 				return
 
 			bytesToTextFile(message_file_contents.encode('utf-8'), textDumpDirectory + '/Message ' + str(message_count_thus_far) + output_text_extension)
@@ -1299,15 +1367,6 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 
 # --- MAIN PROGRAM ---
 
-if os.path.exists(output_folder_name):
-	print('The output folder already exists. This might happen if you run the script again after running it once.')
-	print('This script does not support "catching up" if it crashed or was stopped previously.')
-	print('Please type exactly \'delete\' to remove the folder and start over. Type something else to abort.')
-	decision = input('Confirm deletion: ')
-	if not decision == 'delete':
-		sys.exit("Download Aborted.")
-	rmtree(output_folder_name)
-
 catch_up_directions = None
 if os.path.exists(progress_file_location):
 	print('It appears you have run this script previously. Would you like to continue where you left off?')
@@ -1331,6 +1390,17 @@ with requests.Session() as session:
 	login_form = login_page.forms[0]
 
 	credentials_correct = False
+
+	print()
+	print('----------')
+	print('To continue, the script needs to know your FEIDE login credentials.')
+	print('To do so, type in your NTNU/FEIDE username, press Enter, then type in your password, and press Enter again.')
+	print()
+	print('At this time, only login for NTNU users is supported. If you\'re a student from what was previously known as HiST, and would like to help me out getting login for HiST students to work, please contact me at bart.van.blokland@ntnu.no.')
+	print()
+	print('NOTE: when the program asks for your password, for your security the characters you type are hidden.')
+	print('Just type in your password as you normally would, and press Enter.')
+	print()
 
 	while not credentials_correct:
 		print('Please enter your NTNU/FEIDE username and password.')
@@ -1418,7 +1488,7 @@ with requests.Session() as session:
 		root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
 		root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
 
-		course_folder = pathThusFar + sanitiseFilename(courseNameDict[courseURL])
+		course_folder = pathThusFar + '/' + sanitiseFilename(courseNameDict[courseURL])
 
 		processBulletins(course_folder, itslearning_bulletin_base_url + courseURL, session, courseURL)
 
