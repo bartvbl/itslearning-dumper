@@ -376,7 +376,7 @@ def processTest(pathThusFar, testURL, session):
 
 	pages_remaining = True
 	while pages_remaining:
-		row_index = 1
+		row_index = 0
 		entries_remaining = True
 		while entries_remaining:
 			try:
@@ -1496,6 +1496,7 @@ with requests.Session() as session:
 		processFolder(course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
 
 	print('Done. Everything was downloaded successfully!')
+	input('Press Enter to exit.')
 
 
 
