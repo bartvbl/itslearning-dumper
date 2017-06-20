@@ -691,12 +691,24 @@ def processAssignment(pathThusFar, assignmentURL, session):
 
 		assessment_file_contents = ''.encode('utf-8')
 
+
+		# Part 1: The table describing when you submitted, who evaluated you, etc
+		baseInformationTable = assignment_answer_table[0].getprevious()
+		while not baseInformationTable.tag == 'table':
+			baseInformationTable = baseInformationTable.getprevious()
+		if baseInformationTable[0].tag == 'tbody':
+			baseInformationTable = baseInformationTable[0]
+		for entry in baseInformationTable:
+			if entry is None or entry[0] is None or entry[0].text is None:
+				continue
+			assessment_file_contents += (entry[0].text + ': ').encode('utf-8') + etree.tostring(entry[1], encoding='utf-8') + '\n'.encode('utf-8')
+
+
+		# Part 2: The table containing your submitted files and feedback
 		for entry in assignment_answer_root:
 
 			if entry is None or entry[0] is None or entry[0].text is None:
-				continue
-
-			
+				continue		
 
 			if entry[0].text.startswith('Files') or entry[0].text.startswith('Filer'):
 				file_list_div = entry[1][0]
@@ -717,6 +729,8 @@ def processAssignment(pathThusFar, assignmentURL, session):
 					file_location = attached_file.get('href')
 					download_file(file_location, answerDumpDirectory, session)
 				assessment_file_contents += (entry[0].text + ': ').encode('utf-8') + etree.tostring(entry[1], encoding='utf-8') + '\n'.encode('utf-8')
+
+
 		bytesToTextFile(assessment_file_contents, answerDumpDirectory + '/assessment.html')
 
 		
