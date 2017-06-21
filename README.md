@@ -61,7 +61,7 @@ If you've never touched Python before, here's how to get the script running on W
 
 9. In the command prompt window, write:
 
-        pip install requests lxml
+        pip install -r requirements.txt
 
     And press enter. This installs two libraries which the script uses.
 
