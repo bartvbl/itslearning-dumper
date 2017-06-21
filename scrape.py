@@ -68,6 +68,8 @@ parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=int, def
 					help="Rate limits requests to It's Learning (seconds). Defaults to 1 second.")
 parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, default=0,
 					help='Skip to a course with a specific index. Useful after a crash.')
+parser.add_argument('--enable-checkpoints', '-C', dest='enable_checkpoints', type=bool, default=False, 
+					help='Save the location of the last element encountered by the dumping process. Useful for quick recovery while debugging, or being able to continue the dumping process at a later date.')
 
 args = parser.parse_args()
 
@@ -145,7 +147,7 @@ print('Selected output folder:', output_folder_name)
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
 # The state is stored in a small text file created inside the working directory.
 # Turn this setting on to allow the creation of these checkpoints. They are only really useful if you can fix the issue causing the crash in the first place.
-enable_checkpoints = False
+enable_checkpoints = args.enable_checkpoints
 
 # --- CONSTANTS ---
 
