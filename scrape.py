@@ -67,14 +67,16 @@ parser.add_argument('--output-dir', '-O', dest='output_dir', default=None,
 parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=int, default=1,
 					help="Rate limits requests to It's Learning (seconds). Defaults to 1 second.")
 parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, default=0,
-					help='Skip to a course with a specific index. Useful after a crash.')
+					help='Skip to a course with a specific index. Useful after a crash. Set to 1 to only skip downloading internal messages.')
 parser.add_argument('--enable-checkpoints', '-C', dest='enable_checkpoints', type=bool, default=False, 
 					help='Save the location of the last element encountered by the dumping process. Useful for quick recovery while debugging, or being able to continue the dumping process at a later date.')
+parser.add_argument('--output-text-extension', '-E', dest='output_extension', default='.html',
+					help='Specifies the extension given to produced plaintext files. Values ought to be either \'.html\' or \'.txt\'.')
 
 args = parser.parse_args()
 
 
-# Delayed loading of tkinter to avoid doing so when executing in a non-graphical environment
+# Delayed loading of tkinter to avoid doing so when executing in a non-graphical environment, where an output dir is specified as a command line argument.
 if args.output_dir is None:
 	import tkinter
 	from tkinter.filedialog import askdirectory
@@ -94,7 +96,7 @@ invalid_filename_characters = [':', '.', ',', '*', '/', '\\', '?', '"', '<', '>'
 
 # All output files will receive this extension. Since a lot of stuff contains raw HTML, I used HTML
 # as the file type. You may want to change this to .txt though, since many files also contain plaintext bits.
-output_text_extension = '.html'
+output_text_extension = args.output_extension
 
 # Use if the program crashed and stopped early. Skips to a course with a specific index
 # If this value is non-zero, also downloading of the messaging inbox will be skipped.
