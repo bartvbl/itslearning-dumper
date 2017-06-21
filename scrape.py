@@ -41,6 +41,7 @@ from lxml.html import fromstring, tostring
 from lxml import etree
 
 # Python std lib imports
+import argparse
 import os.path
 import os
 import re
@@ -81,10 +82,19 @@ input('Press Enter to continue and select a directory.')
 
 # --- SETTINGS ---
 
+parser = argparse.ArgumentParser(description='Download files from itslearning. Check the README for more information.')
+
+parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=int, default=1,
+					help="Rate limits requests to It's Learning (seconds). Defaults to 1 second.")
+parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, default=0,
+					help='Skip to a course with a specific index. Useful after a crash.')
+
+args = parser.parse_args()
+
 # I've sprinkled delays around the code to ensure the script isn't spamming requests at maximum rate.
 # Each time such a delay occurs, it waits for this many seconds.
 # Feel free to increase this if you plan to run this script overnight.
-rate_limiting_delay_seconds = 1
+rate_limiting_delay_seconds = args.rate_limit
 
 # Some bits and pieces of text may contain special characters. Since a number of these are used
 # in file paths and file names, they have to be filtered out. 
@@ -102,7 +112,7 @@ output_text_extension = '.html'
 # If this value is non-zero, also downloading of the messaging inbox will be skipped.
 # The index is 1-indexed, and corresponds to the course index listed on the print messages in the console
 # when the dumping of a new course is started.
-skip_to_course_with_index = 0
+skip_to_course_with_index = args.skip_to_course
 
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
