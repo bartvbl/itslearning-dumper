@@ -2,7 +2,7 @@
 
 This script was written to export data from the course management system "It's Learning", as no proper method has been supplied for this previously. 
 
-*NOTE:* This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. This script has been a quick-and-dirty approach, which did the job for me and some other people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
+*NOTE:* This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. I've attempted to avoid these as best as I can, and the script has multiple fallback options. Thus far the script has worked successfully for a large group of people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
 
 ## What does it do?
 
@@ -20,24 +20,23 @@ The following elements are downloaded by this script. Note that It's Learning ha
 
 The easiest way of running this script is to head over to the Releases page (see top navigation on this page), and download a build from there.
 
-Alternatively, you can follow the steps below.
-
-For detailed instructions, see the "Beginner's user guide" section below.
+Alternatively, you can follow the steps below. For detailed step-by-step instructions, see the "Beginner's user guide" section below.
 
 1. Install Python 3.4 or above (latest at the time of writing is 3.6). Make sure to check the "add to path" and "install pip" boxes in the installer.
 2. Install two python packages using pip by running `pip install lxml requests` on the command line.
 3. Run the script and let it do its thing by running `python scrape.py`. It will ask you for your username and password when you start it.
 
-You might need to change your It's Learning language to English. Unfortunately I had to rely on written text in places, and those depend on the language setting.
-
 ## Configuration
 
-The script contains a section near the top devoted to special settings variables. Some variables of particular interest:
+The script has a number of command line parameters available for configuring the script.
 
-* `skip_to_course_with_index`: As mentioned above, crashes may occur. Use this index to force the script to jump to a particular course, potentially hopping over a problematic one. The index is the same as the one printed out in the terminal (1-indexed).
-* `output_folder_name`: Determines the location where output files will be written to. Can be a relative path to the location of the script, or an absolute path. On Windows, I cannot recommend enough to place this directory at the **ROOT** of your hard drive (C:\, D:\, etc.), since the 255 character path name limit is easily surpassed. 
-* `output_text_extension`: Determines the extension output text files have. The specific format of the contents of these is different in most cases, but is in most cases plaintext with fragments of HTML. You might want to change this to `.txt` if preferable.
-* `enable_checkpoints`: Enabling this will create a small text file which keeps track of where the script left off. If the download takes too long, you can simply quit the script, and it will allow you to catch up to where you left off (it does not catch up to the exact point, but close enough).
+For an overview over all available command line paramters, use `python scrape.py --help`
+
+* `--output-dir`: Determines the location where output files will be written to. Can be a relative path to the location of the script, or an absolute path. On Windows, I cannot recommend enough to place this directory at the **ROOT** of your hard drive (C:\, D:\, etc.), since the 255 character path name limit is easily surpassed. This parameter is mandatory on a system without a graphical interface.
+* `--rate-limit-delay`: The number of seconds the script waits after each request. Ensures requests are not sent at a high rate, reducing the load on the It's Learning servers.
+* `--skip-to-course`: As mentioned above, crashes may occur. Use this index to force the script to jump to a particular course, potentially hopping over a problematic one. The index is the same as the one printed out in the terminal (1-indexed). Set to 1 to only skip downloading internal messages.
+* `--output-text-extension`: Determines the extension output text files have. The specific format of the contents of these is different in most cases, but is in most cases plaintext with fragments of HTML. You might want to change this to `.txt` if preferable.
+* `--enable-checkpoints`: Enabling this will create a small text file in the working directory which keeps track of where the script left off. If the download takes too long, you can simply quit the script, and it will allow you to catch up to where you left off (it restarts the element it left off at, which should be close enough).
 
 ## Beginner's User Guide
 
@@ -79,6 +78,16 @@ Good luck!
 
 The following issues are known, and will most likely not be fixed:
 
-* Some images downloaded from places such as discussion forums are saved with filenames such as `showimage.aspx`. I have not built in automatic detection of file types, and some URL's do not provide file name information. 
+* Some images downloaded from places such as discussion forums are saved with filenames such as `showimage.aspx`. I have not built in automatic detection of file types, and some URL's do not provide file name information. You can rename these files to ones with a correct file extension to view them.
 * Attachments from unsent/draft messages in the old messaging system are not downloaded. 
-* Comments on old-style bulletins are not saved.
+* Comments on old-style bulletins are not saved (I have not yet encountered a single course using these).
+
+## Contributors
+
+### Original author: 
+
+- Bart van Blokland
+
+### Additional contributions by:
+
+- @sklirg Håkon Solbjørg
