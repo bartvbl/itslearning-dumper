@@ -56,10 +56,6 @@ from urllib.parse import urlparse
 # Requires Python 3.4
 from pathlib import Path
 
-# User interface goodies
-import tkinter
-from tkinter.filedialog import askdirectory
-
 # --- SETTINGS ---
 
 parser = argparse.ArgumentParser(description='Download files from itslearning. Check the README for more information.')
@@ -123,6 +119,17 @@ is_directory_empty = False
 while not is_directory_empty:
 	if output_folder_name is None:
 		input('Press Enter to continue and select a directory.')
+		# User interface goodies
+		try:
+			# A bit ugly, but libraries already imported won't be imported again, so actually, all is good.
+			import tkinter
+			from tkinter.filedialog import askdirectory
+		except ImportError as ie:
+			print('')
+			print('!!! Could not import tkinter.')
+			print("If you don't have tkinter installed, specify the output dir by using the output parameter '--output-dir'")
+			print('')
+			raise ie
 		tkinter.Tk().withdraw()
 		output_folder_name = askdirectory()
 	if output_folder_name == '':
