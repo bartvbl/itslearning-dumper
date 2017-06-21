@@ -5,8 +5,8 @@
 
 # USAGE:
 # 0. Install Python 3.x (including pip) if you haven't already
-# 1. Look in the imports section, and install any packages you don't already have (pip commands are listed)
-# 2. Run the script ('python scrape.py')
+# 1. Install required packages (`pip install -r requirements.txt`)
+# 2. Run the script (`python scrape.py`)
 
 # WHAT IS DOWNLOADED BY THIS SCRIPT?
 # 1. All messages, both through the new and old system, including attachments
@@ -33,10 +33,8 @@
 from multiprocessing import Queue
 
 
-# Install with "pip install requests"
 import requests
 from requests.exceptions import InvalidURL
-# Install with "pip install lxml"
 from lxml.html import fromstring, tostring
 from lxml import etree
 
