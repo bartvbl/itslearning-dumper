@@ -63,23 +63,6 @@ import tkinter
 tkinter.Tk().withdraw()
 from tkinter.filedialog import askdirectory
 
-# --- INTRO ---
-
-print('----- It\'s Learning dump script -----')
-print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
-print()
-print('Greetings! This script will help you download your content off of It\'s Learning.')
-print('We\'ll start by selecting a directory where all the files are going to be saved.')
-if os.name == 'nt':
-	print()
-	print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
-	print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
-	print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
-	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
-	print('This will cause the least number of files to overflow.')
-print()
-input('Press Enter to continue and select a directory.')
-
 # --- SETTINGS ---
 
 parser = argparse.ArgumentParser(description='Download files from itslearning. Check the README for more information.')
@@ -113,6 +96,23 @@ output_text_extension = '.html'
 # The index is 1-indexed, and corresponds to the course index listed on the print messages in the console
 # when the dumping of a new course is started.
 skip_to_course_with_index = args.skip_to_course
+
+# --- INTRO ---
+
+print('----- It\'s Learning dump script -----')
+print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
+print()
+print('Greetings! This script will help you download your content off of It\'s Learning.')
+print('We\'ll start by selecting a directory where all the files are going to be saved.')
+if os.name == 'nt':
+	print()
+	print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
+	print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
+	print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
+	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
+	print('This will cause the least number of files to overflow.')
+print()
+input('Press Enter to continue and select a directory.')
 
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
