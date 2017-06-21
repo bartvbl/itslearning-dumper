@@ -56,9 +56,7 @@ from urllib.parse import urlparse
 # Requires Python 3.4
 from pathlib import Path
 
-# User interface goodies
-import tkinter
-from tkinter.filedialog import askdirectory
+
 
 # --- SETTINGS ---
 
@@ -72,6 +70,12 @@ parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, d
 					help='Skip to a course with a specific index. Useful after a crash.')
 
 args = parser.parse_args()
+
+
+# Delayed loading of tkinter to avoid doing so when executing in a non-graphical environment
+if args.output_dir is None:
+	import tkinter
+	from tkinter.filedialog import askdirectory
 
 # I've sprinkled delays around the code to ensure the script isn't spamming requests at maximum rate.
 # Each time such a delay occurs, it waits for this many seconds.
@@ -115,24 +119,27 @@ print()
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
 output_folder_name = args.output_dir
-is_directory_empty = False
-while not is_directory_empty:
-	if output_folder_name is None:
-		input('Press Enter to continue and select a directory.')
-		tkinter.Tk().withdraw()
-		output_folder_name = askdirectory()
-	if output_folder_name == '':
-		print('Folder selection cancelled. Aborting.')
-		sys.exit(0)
-	output_folder_name = os.path.abspath(output_folder_name)
-	is_directory_empty = not os.listdir(output_folder_name)
-	if not is_directory_empty:
-		print()
-		print('The selected directory is not empty, which the script needs to work properly.')
-		print('Press enter to try again, and select a new one.')
-		print('You can always create a new directory and select it; that one will always be empty.')
-		print()
-		input('Press Enter to continue and try selecting a directory again.')
+
+# Only try to show a file selection dialog if no override has been selected.
+if args.output_dir is None:
+	is_directory_empty = False
+	while not is_directory_empty:
+		if output_folder_name is None:
+			input('Press Enter to continue and select a directory.')
+			tkinter.Tk().withdraw()
+			output_folder_name = askdirectory()
+		if output_folder_name == '':
+			print('Folder selection cancelled. Aborting.')
+			sys.exit(0)
+		output_folder_name = os.path.abspath(output_folder_name)
+		is_directory_empty = not os.listdir(output_folder_name)
+		if not is_directory_empty:
+			print()
+			print('The selected directory is not empty, which the script needs to work properly.')
+			print('Press enter to try again, and select a new one.')
+			print('You can always create a new directory and select it; that one will always be empty.')
+			print()
+			input('Press Enter to continue and try selecting a directory again.')
 print('Selected output folder:', output_folder_name)
 
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
