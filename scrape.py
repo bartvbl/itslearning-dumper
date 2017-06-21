@@ -1457,13 +1457,31 @@ with requests.Session() as session:
 	course_list_page = fromstring(course_list_response.text)
 	course_list_form = course_list_page.forms[0]
 	
-	course_list_form.fields['ctl26$ctl00$ctl25$ctl02'] = 'All'
-	course_list_dict = convert_lxml_form_to_requests(course_list_form)
+	found_field = False
+	for form_field in course_list_form.fields:
+		if form_field.startswith('ctl26$ctl00'):
+			course_list_form.fields[form_field] = 'All'
+			found_field = True
+
+	if not found_field:
+		print('The script was not able to select all courses. Would you like to continue and only download the courses marked as favourite or active?')
+		print('Type "continue" to only download active or favourited courses. Otherwise, the script will abort.')
+		decision = input('Continue? ')
+		if not decision == 'continue':
+			print('Download aborted.')
+			sys.exit(0)
+
+	if found_field:
+		course_list_dict = convert_lxml_form_to_requests(course_list_form)
 
 	# Part 2: Show all courses
 
-	all_courses_response = session.post(itsleaning_course_list, data=course_list_dict, allow_redirects = True)
-	all_courses_page = fromstring(all_courses_response.text)
+		all_courses_response = session.post(itsleaning_course_list, data=course_list_dict, allow_redirects = True)
+		all_courses_page = fromstring(all_courses_response.text)
+
+	else:
+		# Just use the page we received instead
+		all_courses_page = course_list_page
 
 	# Part 3: Extract the course names
 
