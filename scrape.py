@@ -67,6 +67,8 @@ from tkinter.filedialog import askdirectory
 
 parser = argparse.ArgumentParser(description='Download files from itslearning. Check the README for more information.')
 
+parser.add_argument('--output-dir', '-O', dest='output_dir', default=None,
+					help='Defines the directory to output files from. If left empty, the program will prompt.')
 parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=int, default=1,
 					help="Rate limits requests to It's Learning (seconds). Defaults to 1 second.")
 parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, default=0,
@@ -112,13 +114,15 @@ if os.name == 'nt':
 	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
 	print('This will cause the least number of files to overflow.')
 print()
-input('Press Enter to continue and select a directory.')
 
 # Determines where the program dumps its output. 
 # Note that the tailing slash is mandatory. 
+output_folder_name = args.output_dir
 is_directory_empty = False
 while not is_directory_empty:
-	output_folder_name = askdirectory()
+	if output_folder_name is None:
+		input('Press Enter to continue and select a directory.')
+		output_folder_name = askdirectory()
 	if output_folder_name == '':
 		print('Folder selection cancelled. Aborting.')
 		sys.exit(0)
