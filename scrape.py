@@ -60,7 +60,6 @@ from pathlib import Path
 
 # User interface goodies
 import tkinter
-tkinter.Tk().withdraw()
 from tkinter.filedialog import askdirectory
 
 # --- SETTINGS ---
@@ -122,6 +121,7 @@ is_directory_empty = False
 while not is_directory_empty:
 	if output_folder_name is None:
 		input('Press Enter to continue and select a directory.')
+		tkinter.Tk().withdraw()
 		output_folder_name = askdirectory()
 	if output_folder_name == '':
 		print('Folder selection cancelled. Aborting.')
