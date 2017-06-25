@@ -154,27 +154,80 @@ enable_checkpoints = args.enable_checkpoints
 # --- CONSTANTS ---
 
 innsida = 'https://innsida.ntnu.no'
+
 feide_base_url = 'https://idp.feide.no/simplesaml/module.php/feide/login.php'
-itslearning_url = 'https://innsida.ntnu.no/sso?target=itslearning'
-itsleaning_course_list = 'https://ntnu.itslearning.com/Course/AllCourses.aspx'
-itslearning_course_base_url = 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx'
-itslearning_bulletin_base_url = 'https://ntnu.itslearning.com/Course/course.aspx?CourseId='
-itslearning_bulletin_next_url = 'https://ntnu.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}'
-itslearning_folder_base_url = 'https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID='
-itslearning_file_base_url = 'https://ntnu.itslearning.com/File/fs_folderfile.aspx?FolderFileID='
-itslearning_assignment_base_url = 'https://ntnu.itslearning.com/essay/read_essay.aspx?EssayID='
-itslearning_note_base_url = 'https://ntnu.itslearning.com/note/View_Note.aspx?NoteID='
-itslearning_discussion_base_url = 'https://ntnu.itslearning.com/discussion/list_discussions.aspx?DiscussionID='
-itslearning_weblink_base_url = 'https://ntnu.itslearning.com/weblink/weblink.aspx?WebLinkID='
-itslearning_weblink_header_base_url = 'https://ntnu.itslearning.com/weblink/weblink_header.aspx?WebLinkID=' 
-itslearning_learning_tool_base_url = 'https://ntnu.itslearning.com/LearningToolElement/ViewLearningToolElement.aspx?LearningToolElementId='
-itslearning_messaging_url = 'https://ntnu.itslearning.com/Messages/Messages.aspx'
-itslearning_comment_service = 'https://ntnu.itslearning.com/Services/CommentService.asmx/GetOldComments?sourceId={}&sourceType={}&commentId={}&count={}&numberOfPreviouslyReadItemsToDisplay={}&usePersonNameFormatLastFirst={}'
-itslearning_root_url = 'https://ntnu.itslearning.com'
-itslearning_not_found = 'https://ntnu.itslearning.com/not_exist.aspx'
-itslearning_test_base_url = 'https://ntnu.itslearning.com/test/view_survey_list.aspx?TestID='
-old_messaging_api_url = 'https://ntnu.itslearning.com/Messages/InternalMessages.aspx?MessageFolderId={}'
-itslearning_picture_url = 'https://ntnu.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl='
+
+institutions = ['ntnu', 'hist']
+
+itslearning_url = {
+	'ntnu': 'https://innsida.ntnu.no/sso?target=itslearning',
+	'hist': 'https://innsida.ntnu.no/lms-hist'}
+
+
+itsleaning_course_list = {
+	'ntnu': 'https://ntnu.itslearning.com/Course/AllCourses.aspx', 
+	'hist': 'https://hist.itslearning.com/Course/AllCourses.aspx'}
+itslearning_course_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx', 
+	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx'}
+itslearning_bulletin_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Course/course.aspx?CourseId=', 
+	'hist': 'https://hist.itslearning.com/Course/course.aspx?CourseId='}
+itslearning_bulletin_next_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}', 
+	'hist': 'https://hist.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}'}
+itslearning_folder_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID=', 
+	'hist': 'https://hist.itslearning.com/Folder/processfolder.aspx?FolderID='}
+itslearning_file_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/File/fs_folderfile.aspx?FolderFileID=', 
+	'hist': 'https://hist.itslearning.com/File/fs_folderfile.aspx?FolderFileID='}
+itslearning_assignment_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/essay/read_essay.aspx?EssayID=', 
+	'hist': 'https://hist.itslearning.com/essay/read_essay.aspx?EssayID='}
+itslearning_note_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/note/View_Note.aspx?NoteID=', 
+	'hist': 'https://hist.itslearning.com/note/View_Note.aspx?NoteID='}
+itslearning_discussion_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/discussion/list_discussions.aspx?DiscussionID=', 
+	'hist': 'https://hist.itslearning.com/discussion/list_discussions.aspx?DiscussionID='}
+itslearning_weblink_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/weblink/weblink.aspx?WebLinkID=', 
+	'hist': 'https://hist.itslearning.com/weblink/weblink.aspx?WebLinkID='}
+itslearning_weblink_header_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/weblink/weblink_header.aspx?WebLinkID=' , 
+	'hist': 'https://hist.itslearning.com/weblink/weblink_header.aspx?WebLinkID=' }
+itslearning_learning_tool_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/LearningToolElement/ViewLearningToolElement.aspx?LearningToolElementId=', 
+	'hist': 'https://hist.itslearning.com/LearningToolElement/ViewLearningToolElement.aspx?LearningToolElementId='}
+itslearning_comment_service = {
+	'ntnu': 'https://ntnu.itslearning.com/Services/CommentService.asmx/GetOldComments?sourceId={}&sourceType={}&commentId={}&count={}&numberOfPreviouslyReadItemsToDisplay={}&usePersonNameFormatLastFirst={}', 
+	'hist': 'https://hist.itslearning.com/Services/CommentService.asmx/GetOldComments?sourceId={}&sourceType={}&commentId={}&count={}&numberOfPreviouslyReadItemsToDisplay={}&usePersonNameFormatLastFirst={}'}
+itslearning_root_url = {
+	'ntnu': 'https://ntnu.itslearning.com', 
+	'hist': 'https://hist.itslearning.com'}
+itslearning_not_found = {
+	'ntnu': 'https://ntnu.itslearning.com/not_exist.aspx', 
+	'hist': 'https://hist.itslearning.com/not_exist.aspx'}
+itslearning_test_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/test/view_survey_list.aspx?TestID=', 
+	'hist': 'https://hist.itslearning.com/test/view_survey_list.aspx?TestID='}
+old_messaging_api_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Messages/InternalMessages.aspx?MessageFolderId={}', 
+	'hist': 'https://hist.itslearning.com/Messages/InternalMessages.aspx?MessageFolderId={}'}
+itslearning_picture_url = {
+	'ntnu': 'https://ntnu.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl=', 
+	'hist': 'https://hist.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl='}
+itslearning_new_messaging_api_url = {
+	'ntnu': 'https://ntnu.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15',
+	'hist': 'https://hist.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15'}
+base64_png_image_url = {
+	'ntnu': 'https://ntnu.itslearning.comdata:image/png;base64,',
+	'hist': 'https://hist.itslearning.comdata:image/png;base64,'}
+base64_jpeg_image_url = {
+	'ntnu': 'https://ntnu.itslearning.comdata:image/jpeg;base64,'
+	'hist': 'https://hist.itslearning.comdata:image/jpeg;base64,'}
+
 innsida_login_parameters = {'SessionExpired': 0}
 progress_file_location = os.path.join(os.getcwd(), 'saved_progress_state.txt')
 
@@ -254,7 +307,7 @@ def convert_lxml_form_to_requests(lxml_form_values):
 		form_dict[item[0]] = item[1]
 	return form_dict
 
-def do_feide_relay(relay_response):
+def do_feide_relay(session, relay_response):
 	relay_page = fromstring(relay_response.text)
 	relay_form = relay_page.forms[0]
 
@@ -262,12 +315,12 @@ def do_feide_relay(relay_response):
 
 	return session.post(relay_form.action, data = relay_form_dict)
 
-def download_file(url, destination_directory, session, index=None, filename=None, disableFilenameReencode=False):
+def download_file(institution, url, destination_directory, session, index=None, filename=None, disableFilenameReencode=False):
 	try:
 		file_download_response = session.get(url, allow_redirects=True)
 	except Exception:
 		# Can occur in a case of an encoded image. If so, dump it.
-		if 'https://ntnu.itslearning.comdata:image/png;base64,' in url or 'https://ntnu.itslearning.comdata:image/jpeg;base64,' in url:
+		if base64_png_image_url[institution] in url or base64_jpeg_image_url[institution] in url:
 			extension = url.split(':')[2].split(';')[0].split('/')[1]
 			print('\tDownloaded Base64 encoded {} image'.format(extension))
 			start_index = url.index(',') + 1
@@ -372,7 +425,7 @@ def loadPaginationPage(page_url, current_page_document, backpatch_character_inde
 
 # --- DUMPING OF VARIOUS BITS OF ITS LEARNING FUNCTIONALITY ---
 
-def processTest(pathThusFar, testURL, session):
+def processTest(institution, pathThusFar, testURL, session):
 	test_response = session.get(testURL, allow_redirects = True)
 	test_document = fromstring(test_response.text)
 	
@@ -389,9 +442,9 @@ def processTest(pathThusFar, testURL, session):
 	try:
 		# If we have access to downloading all results, we do so here.
 		# Since 'we can, grabbing both XLS and HTML reports.'
-		show_result_url = itslearning_root_url + test_document.get_element_by_id('result')[0].get('href')[2:]
-		download_file(show_result_url + '&Type=2', dumpDirectory, session, disableFilenameReencode=False)
-		download_file(show_result_url + '&Type=2&HtmlType=true', dumpDirectory, session, disableFilenameReencode=False)
+		show_result_url = itslearning_root_url[institution] + test_document.get_element_by_id('result')[0].get('href')[2:]
+		download_file(institution, show_result_url + '&Type=2', dumpDirectory, session, disableFilenameReencode=False)
+		download_file(institution, show_result_url + '&Type=2&HtmlType=true', dumpDirectory, session, disableFilenameReencode=False)
 		print('\tIt\'s Learning generated report downloaded.')
 	except KeyError:
 		# No problem that we can't see the 'show result button, the manual dump will catch whatever is visible to us'
@@ -416,7 +469,7 @@ def processTest(pathThusFar, testURL, session):
 
 			entry_name = table_entry_element[0 + index_offset].text_content()
 			entry_date = table_entry_element[1 + index_offset].text_content()
-			entry_url = itslearning_root_url + table_entry_element[2 + index_offset][0].get('href')[2:]
+			entry_url = itslearning_root_url[institution] + table_entry_element[2 + index_offset][0].get('href')[2:]
 
 			print('\tDownloading response from', entry_name.encode('ascii', 'ignore'))
 
@@ -450,10 +503,10 @@ def processTest(pathThusFar, testURL, session):
 		next_page_url = html.unescape(next_page_button[0].get('href'))[2:]
 
 		print('\tPage finished, moving on to next page.')
-		test_response = session.get(itslearning_root_url + next_page_url, allow_redirects = True)
+		test_response = session.get(itslearning_root_url[institution] + next_page_url, allow_redirects = True)
 		test_document = fromstring(test_response.text)
 
-def processNote(pathThusFar, noteURL, session):
+def processNote(institution, pathThusFar, noteURL, session):
 	note_response = session.get(noteURL, allow_redirects=True)
 	note_document = fromstring(note_response.text)
 
@@ -470,11 +523,11 @@ def processNote(pathThusFar, noteURL, session):
 
 	for image_tag in note_content_div.iterfind(".//img"):
 		image_URL = image_tag.get('src')
-		download_file(image_URL, dumpDirectory, session)
+		download_file(institution, image_URL, dumpDirectory, session)
 
 	bytesToTextFile(etree.tostring(note_content_div), dumpDirectory + '/' + note_title + output_text_extension)
 
-def processWeblink(pathThusFar, weblinkPageURL, link_title, session):
+def processWeblink(institution, pathThusFar, weblinkPageURL, link_title, session):
 	print('\tDownloading weblink: ', link_title.encode('ascii', 'ignore'))
 
 	weblink_response = session.get(weblinkPageURL, allow_redirects=True)
@@ -483,7 +536,7 @@ def processWeblink(pathThusFar, weblinkPageURL, link_title, session):
 	header_frame = weblink_document.find(".//frame")
 	header_src = header_frame.get('src')
 
-	weblink_header_response = session.get(itslearning_weblink_header_base_url + header_src.split('=')[1], allow_redirects=True)
+	weblink_header_response = session.get(itslearning_weblink_header_base_url[institution] + header_src.split('=')[1], allow_redirects=True)
 	weblink_header_document = fromstring(weblink_header_response.text)
 
 	link_info_node = weblink_header_document.find_class('frameheaderinfo')[0]
@@ -499,7 +552,7 @@ def processWeblink(pathThusFar, weblinkPageURL, link_title, session):
 
 	bytesToTextFile(link_file_content, pathThusFar + '/Link - ' + link_title + output_text_extension)
 
-def processLearningToolElement(pathThusFar, elementURL, session):
+def processLearningToolElement(institution, pathThusFar, elementURL, session):
 	element_response = session.get(elementURL, allow_redirects=True)
 	element_document = fromstring(element_response.text)
 
@@ -512,7 +565,7 @@ def processLearningToolElement(pathThusFar, elementURL, session):
 	frame_content_response = session.get(frameSrc, allow_redirects=True)
 	bytesToTextFile(frame_content_response.content, pathThusFar + '/Learning Tool Element - ' + element_title + output_text_extension)
 
-def processPicture(pathThusFar, pictureURL, session):
+def processPicture(institution, pathThusFar, pictureURL, session):
 	picture_response = session.get(pictureURL, allow_redirects=True)
 	picture_document = fromstring(picture_response.text)
 
@@ -524,13 +577,13 @@ def processPicture(pathThusFar, pictureURL, session):
 	dumpDirectoryPath = makeDirectories(dumpDirectoryPath)
 
 	image_base_element = picture_document.find_class('itsl-formbox')[0]
-	imageURL = itslearning_root_url + image_base_element[0][0].get('src')
-	download_file(imageURL, dumpDirectoryPath, session)
+	imageURL = itslearning_root_url[institution] + image_base_element[0][0].get('src')
+	download_file(institution, imageURL, dumpDirectoryPath, session)
 
 	description_text = etree.tostring(image_base_element[2], encoding='utf-8')
 	bytesToTextFile(description_text, dumpDirectoryPath + "/caption" + output_text_extension)
 
-def processDiscussionPost(pathThusFar, postURL, postTitle, session):
+def processDiscussionPost(institution, pathThusFar, postURL, postTitle, session):
 	print("\tDownloading thread:", postTitle.encode('ascii', 'ignore'))
 	post_response = session.get(postURL, allow_redirects=True)
 	post_document = fromstring(post_response.text)
@@ -596,9 +649,9 @@ def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 
 			# Special case for relative URL's: drop the It's Learning root URL in front of it
 			if not image_URL.startswith('http'):
-				image_URL = itslearning_root_url + image_URL
+				image_URL = itslearning_root_url[institution] + image_URL
 
-			download_file(image_URL, imageDumpDirectory, session)
+			download_file(institution, image_URL, imageDumpDirectory, session)
 
 			delay()
 
@@ -614,7 +667,7 @@ def processDiscussionPost(pathThusFar, postURL, postTitle, session):
 	# Add a time delay before moving on to the next post
 	delay()
 
-def processDiscussionForum(pathThusFar, discussionURL, session):
+def processDiscussionForum(institution, pathThusFar, discussionURL, session):
 	discussion_response = session.get(discussionURL, allow_redirects=True)
 	discussion_document = fromstring(discussion_response.text)
 
@@ -643,7 +696,7 @@ def processDiscussionForum(pathThusFar, discussionURL, session):
 			while nextThreadElement is not None and nextThreadElement != False:
 				postURL = nextThreadElement[1][0].get('href')
 				postTitle = nextThreadElement[1][0].text
-				processDiscussionPost(discussionDumpDirectory, itslearning_root_url + postURL, postTitle, session)
+				processDiscussionPost(institution, discussionDumpDirectory, itslearning_root_url[institution] + postURL, postTitle, session)
 				threadID += 1
 				try:
 					nextThreadElement = discussion_document.get_element_by_id('Threads_' + str(threadID))
@@ -664,7 +717,7 @@ def processDiscussionForum(pathThusFar, discussionURL, session):
 
 
 
-def processAssignment(pathThusFar, assignmentURL, session):
+def processAssignment(institution, pathThusFar, assignmentURL, session):
 	print("\tDownloading assignment:", assignmentURL.encode('ascii', 'ignore'))
 	assignment_response = session.get(assignmentURL, allow_redirects=True)
 	assignment_document = fromstring(assignment_response.text)
@@ -699,7 +752,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 	file_listing_element = description_element[2][1]
 	for file_element in file_listing_element:
 		file_url = file_element[0].get('href')
-		download_file(file_url, dumpDirectory, session)
+		download_file(institution, file_url, dumpDirectory, session)
 
 
 	# Download own submission, but only if assignment was answered
@@ -746,11 +799,11 @@ def processAssignment(pathThusFar, assignmentURL, session):
 						file_index = index
 
 					file_location = file_entry[0][0].get('href')
-					download_file(file_location, answerDumpDirectory, session, file_index)
+					download_file(institution, file_location, answerDumpDirectory, session, file_index)
 			else:
 				for attached_file in entry.find_class('ccl-iconlink'):
 					file_location = attached_file.get('href')
-					download_file(file_location, answerDumpDirectory, session)
+					download_file(institution, file_location, answerDumpDirectory, session)
 				assessment_file_contents += (entry[0].text + ': ').encode('utf-8') + etree.tostring(entry[1], encoding='utf-8') + '\n'.encode('utf-8')
 
 
@@ -848,7 +901,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 				# Column 7: Show (link to details page)
 				try:
 					# Exploit that the last entry is always the details link
-					details_page_url = itslearning_root_url + submission_element[len(submission_element) - 1][0].get('href')
+					details_page_url = itslearning_root_url[institution] + submission_element[len(submission_element) - 1][0].get('href')
 				except IndexError:
 					details_page_url = None
 
@@ -911,7 +964,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 							# We also don't want plagiarism reports
 							if '/essay/PlagiarismReport.aspx' in link[2]:
 								continue
-							download_file(link[2], answer_directory, session, filename=html.unescape(link[0].text_content()), disableFilenameReencode=True)
+							download_file(institution, link[2], answer_directory, session, filename=html.unescape(link[0].text_content()), disableFilenameReencode=True)
 					
 					# Case 2: No plagiarism check was performed
 					has_unchecked_files = True
@@ -921,7 +974,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 						has_unchecked_files = False
 					if has_unchecked_files:
 						for link_element in file_listing_element:
-							download_file(link_element[0].get('href'), answer_directory, session, filename=html.unescape(link_element[0].text_content()), disableFilenameReencode=True)
+							download_file(institution, link_element[0].get('href'), answer_directory, session, filename=html.unescape(link_element[0].text_content()), disableFilenameReencode=True)
 
 
 				
@@ -937,7 +990,7 @@ def processAssignment(pathThusFar, assignmentURL, session):
 
 
 
-def processFile(pathThusFar, fileURL, session):
+def processFile(institution, pathThusFar, fileURL, session):
 	file_response = session.get(fileURL, allow_redirects=True)
 
 	#writeHTML(file_response, 'output.html')
@@ -956,9 +1009,9 @@ def processFile(pathThusFar, fileURL, session):
 			file_index = index
 			print('\tDownloading version {} of {}.'.format(index+1, len(download_link_indices)))
 		
-		download_file(itslearning_root_url + file_response.text[link_start_index:link_end_index], pathThusFar, session, file_index)
+		download_file(institution, itslearning_root_url[institution] + file_response.text[link_start_index:link_end_index], pathThusFar, session, file_index)
 
-def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [], level = 0, catch_up_state = None):
+def processFolder(institution, pathThusFar, folderURL, session, courseIndex, folder_state = [], level = 0, catch_up_state = None):
 	print("\tDumping folder: ", pathThusFar.encode('ascii', 'ignore'))
 	pathThusFar = sanitisePath(pathThusFar)
 	if not os.path.exists(pathThusFar):
@@ -1003,32 +1056,32 @@ def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [
 
 		try: 
 			if item_url.startswith('/Folder'):
-				folderURL = itslearning_folder_base_url + item_url.split('=')[1]
-				processFolder(pathThusFar + "/Folder - " + item_name, folderURL, session, courseIndex, folder_state + [index], level + 1)
+				folderURL = itslearning_folder_base_url[institution] + item_url.split('=')[1]
+				processFolder(institution, pathThusFar + "/Folder - " + item_name, folderURL, session, courseIndex, folder_state + [index], level + 1)
 			elif item_url.startswith('/File'):
 				pass
-				processFile(pathThusFar, itslearning_file_base_url + item_url.split('=')[1], session)
+				processFile(institution, pathThusFar, itslearning_file_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/essay'):
 				pass
-				processAssignment(pathThusFar, itslearning_assignment_base_url + item_url.split('=')[1], session)
+				processAssignment(institution, pathThusFar, itslearning_assignment_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/note'):
 				pass
-				processNote(pathThusFar, itslearning_note_base_url + item_url.split('=')[1], session)
+				processNote(institution, pathThusFar, itslearning_note_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/discussion'):
 				pass
-				processDiscussionForum(pathThusFar, itslearning_discussion_base_url + item_url.split('=')[1], session)
+				processDiscussionForum(institution, pathThusFar, itslearning_discussion_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/weblink'):
 				pass
-				processWeblink(pathThusFar, itslearning_weblink_base_url + item_url.split('=')[1], item_name, session)
+				processWeblink(institution, pathThusFar, itslearning_weblink_base_url[institution] + item_url.split('=')[1], item_name, session)
 			elif item_url.startswith('/LearningToolElement'):
 				pass
-				processLearningToolElement(pathThusFar, itslearning_learning_tool_base_url + item_url.split('=')[1], session)
+				processLearningToolElement(institution, pathThusFar, itslearning_learning_tool_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/test'):
 				pass
-				processTest(pathThusFar, itslearning_test_base_url + item_url.split('=')[1], session)
+				processTest(institution, pathThusFar, itslearning_test_base_url[institution] + item_url.split('=')[1], session)
 			elif item_url.startswith('/picture'):
 				pass
-				processPicture(pathThusFar, itslearning_picture_url.format(item_url.split('=')[1]), session)
+				processPicture(institution, pathThusFar, itslearning_picture_url[institution].format(item_url.split('=')[1]), session)
 			else:
 				print('Warning: Skipping unknown URL:', item_url.encode('ascii', 'ignore'))
 		except Exception:
@@ -1051,14 +1104,14 @@ def processFolder(pathThusFar, folderURL, session, courseIndex, folder_state = [
 		# Ensure some delay has occurred so that we are not spamming when querying lots of empty folders.
 		delay()
 
-def loadMessagingPage(index, session):
-	url = 'https://ntnu.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15'.format(index)
+def loadMessagingPage(institution, index, session):
+	url = itslearning_new_messaging_api_url[institution].format(index)
 	return json.loads(session.get(url, allow_redirects=True).text)
 
-def processMessaging(pathThusFar, session):
+def processMessaging(institution, pathThusFar, session):
 	batchIndex = 0
 	threadIndex = 0
-	messageBatch = loadMessagingPage(batchIndex, session)
+	messageBatch = loadMessagingPage(institution, batchIndex, session)
 
 	dumpDirectory = os.path.join(os.path.join(pathThusFar, 'Messaging'), 'New API')
 	dumpDirectory = makeDirectories(dumpDirectory)
@@ -1082,7 +1135,7 @@ def processMessaging(pathThusFar, session):
 				threadFileContents += '-------------------------------------------------------------------------\n'
 				
 				if message['AttachmentName'] is not None:
-					download_file(message['AttachmentUrl'], attachmentsDirectory, session, index=None, filename=None)#str(message['InstantMessageThreadId']) + '_' + message['AttachmentName'])
+					download_file(institution, message['AttachmentUrl'], attachmentsDirectory, session, index=None, filename=None)#str(message['InstantMessageThreadId']) + '_' + message['AttachmentName'])
 			thread_title = 'Message thread ' + str(threadIndex) + ' - ' + sanitiseFilename(messageThread['Created']) + '.txt'
 			threadFileContents = threadFileContents.encode('utf-8')
 			bytesToTextFile(threadFileContents, os.path.join(dumpDirectory, thread_title))
@@ -1090,7 +1143,7 @@ def processMessaging(pathThusFar, session):
 
 		delay()
 		batchIndex += 1
-		messageBatch = loadMessagingPage(batchIndex, session)
+		messageBatch = loadMessagingPage(institution, batchIndex, session)
 
 	print('Downloading messages (send through the old API)')
 
@@ -1099,9 +1152,9 @@ def processMessaging(pathThusFar, session):
 	
 	
 	folderID = 1
-	messaging_response = session.get(old_messaging_api_url.format(folderID), allow_redirects=True)
+	messaging_response = session.get(old_messaging_api_url[institution].format(folderID), allow_redirects=True)
 
-	while messaging_response.url != itslearning_not_found:
+	while messaging_response.url != itslearning_not_found[institution]:
 		inbox_document = fromstring(messaging_response.text)
 		inbox_title = inbox_document.get_element_by_id('ctl05_TT').text_content()
 		print('\tAccessing folder {}'.format(inbox_title).encode('ascii', 'ignore'))
@@ -1132,7 +1185,7 @@ def processMessaging(pathThusFar, session):
 					# Index 1: Favourite star
 					# index 2: Sender
 					# Index 3: Title
-					message_url = itslearning_root_url + message_element[3][0].get('href')
+					message_url = itslearning_root_url[institution] + message_element[3][0].get('href')
 					message_response = session.get(message_url, allow_redirects = True)
 					message_document = fromstring(message_response.text)
 
@@ -1165,7 +1218,7 @@ def processMessaging(pathThusFar, session):
 						if has_attachment:
 							attachment_filename = message_header_element[2][1][0].text_content()
 							message_attachment_url = message_header_element[2][1][0].get('href')
-							download_file(itslearning_root_url + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
+							download_file(institution, itslearning_root_url[institution] + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
 
 					message_file_contents = 'From: ' + message_sender + '\n'
 					message_file_contents = 'To: ' + message_recipient + '\n'
@@ -1189,7 +1242,7 @@ def processMessaging(pathThusFar, session):
 				message_index += 1
 
 			# Move on to the next page
-			found_next_page, messaging_response = loadPaginationPage(old_messaging_api_url.format(folderID), inbox_document)
+			found_next_page, messaging_response = loadPaginationPage(old_messaging_api_url[institution].format(folderID), inbox_document)
 
 			if found_next_page:
 				inbox_document = fromstring(messaging_response.text)
@@ -1198,9 +1251,9 @@ def processMessaging(pathThusFar, session):
 				pagesRemain = False
 
 		folderID += 1
-		messaging_response = session.get(old_messaging_api_url.format(folderID), allow_redirects=True)
+		messaging_response = session.get(old_messaging_api_url[institution].format(folderID), allow_redirects=True)
 
-def dumpSingleBulletin(raw_page_text, bulletin_element, dumpDirectory, bulletin_index):
+def dumpSingleBulletin(institution, raw_page_text, bulletin_element, dumpDirectory, bulletin_index):
 	# Post data
 	author = bulletin_element.find_class('itsl-light-bulletins-person-name')[0][0][0].text_content()
 	print('\tBulletin by', author.encode('ascii', 'ignore'))
@@ -1247,7 +1300,7 @@ def dumpSingleBulletin(raw_page_text, bulletin_element, dumpDirectory, bulletin_
 			readItemsCount = comment_info['NumberOfPreviouslyReadItemsToDisplay']
 			useLastName = comment_info['UsePersonNameFormatLastFirst']
 
-			complete_comment_url = itslearning_comment_service.format(sourceID, sourceType, commentId, count, readItemsCount, useLastName)
+			complete_comment_url = itslearning_comment_service[institution].format(sourceID, sourceType, commentId, count, readItemsCount, useLastName)
 			additional_comments = json.loads(session.get(complete_comment_url, allow_redirects=True).text)
 
 			delay()
@@ -1260,7 +1313,7 @@ def dumpSingleBulletin(raw_page_text, bulletin_element, dumpDirectory, bulletin_
 
 	bytesToTextFile(bulletin_file_content.encode('utf-8'), dumpDirectory + '/Bulletin ' + str(bulletin_index) + output_text_extension)
 
-def processBulletins(pathThusFar, courseURL, session, courseID):
+def processBulletins(institution, pathThusFar, courseURL, session, courseID):
 	bulletin_response = session.get(courseURL, allow_redirects=True)
 	bulletin_document = fromstring(bulletin_response.text)
 
@@ -1293,7 +1346,7 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 
 			bulletin_id += 1
 
-			dumpSingleBulletin(bulletin_response.text, bulletin_element, dumpDirectory, bulletin_id)
+			dumpSingleBulletin(institution, bulletin_response.text, bulletin_element, dumpDirectory, bulletin_id)
 
 		# Get initial next page settings
 		field_name = '"InitialPageData"'
@@ -1305,7 +1358,7 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 		# Now we keep going until all bulletins have been downloaded
 		while next_bulletin_batch['NeedToShowMore']:
 			print('\tLoading more bulletins')
-			additional_bulletins_response = session.get(itslearning_bulletin_next_url.format(courseID, next_bulletin_batch['BoundaryLightBulletinId'], next_bulletin_batch['BoundaryLightBulletinCreatedTicks']))
+			additional_bulletins_response = session.get(itslearning_bulletin_next_url[institution].format(courseID, next_bulletin_batch['BoundaryLightBulletinId'], next_bulletin_batch['BoundaryLightBulletinCreatedTicks']))
 			additional_bulletins_document = fromstring(additional_bulletins_response.text)
 
 			for bulletin_element in additional_bulletins_document:
@@ -1315,7 +1368,7 @@ def processBulletins(pathThusFar, courseURL, session, courseID):
 					break
 
 				bulletin_id += 1
-				dumpSingleBulletin(additional_bulletins_response.text, bulletin_element, dumpDirectory, bulletin_id)
+				dumpSingleBulletin(institution, additional_bulletins_response.text, bulletin_element, dumpDirectory, bulletin_id)
 
 			delay()
 	bulletin_list_elements1 = bulletin_document.xpath('//div[@id = $elementid]', elementid = 'ctl00_ContentPlaceHolder_DashboardLayout_ctl04_ctl04_CT')
@@ -1462,96 +1515,113 @@ with requests.Session() as session:
 		else:
 			credentials_correct = True
 
-	innsida_main_page = do_feide_relay(relay_response)
+	innsida_main_page = do_feide_relay(session, relay_response)
 
-	print('Accessing It\'s Learning')
+	for institution in institutions:
 
-	innsida_outgoing_response = session.get(itslearning_url, allow_redirects = True)
+		print('Autodetecting access to', institution.upper())
 
-	# Same story as before. The page goes through FEIDE, which has a built-in form we need to auto-submit
+		has_access_to_institution = False
+		if institution == 'ntnu':
+			pass
+		elif institution == 'hist':
+			pass
 
-	itslearning_main_page = do_feide_relay(innsida_outgoing_response)
-
-	print('Listing courses')
-
-	# Part 1: Obtain session-specific form
-
-	course_list_response = session.get(itsleaning_course_list, allow_redirects = True)
-	course_list_page = fromstring(course_list_response.text)
-	course_list_form = course_list_page.forms[0]
-	
-	found_field = False
-	for form_field in course_list_form.fields:
-		if form_field.startswith('ctl26$ctl00'):
-			course_list_form.fields[form_field] = 'All'
-			found_field = True
-
-	if not found_field:
-		print('The script was not able to select all courses. Would you like to continue and only download the courses marked as favourite or active?')
-		print('Type "continue" to only download active or favourited courses. Otherwise, the script will abort.')
-		decision = input('Continue? ')
-		if not decision == 'continue':
-			print('Download aborted.')
-			sys.exit(0)
-
-	if found_field:
-		course_list_dict = convert_lxml_form_to_requests(course_list_form)
-
-	# Part 2: Show all courses
-
-		all_courses_response = session.post(itsleaning_course_list, data=course_list_dict, allow_redirects = True)
-		all_courses_page = fromstring(all_courses_response.text)
-
-	else:
-		# Just use the page we received instead
-		all_courses_page = course_list_page
-
-	# Part 3: Extract the course names
-
-	courseList = []
-	courseNameDict = {}
-
-	# Not a great way of doing this; assumes page structure. Should work for the very near future though.
-	courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
-	courseTableElement = courseTableDivElement[0]
-	for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
-		if index == 0:
-			continue
-		# Extract the course ID from the URL
-		courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
-		courseList.append(courseURL)
-		courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
-
-	pathThusFar = output_folder_name
-
-	print('Found', str(len(courseList)), 'courses.')
-
-	# If it is desirable to skip to a particular course, also skip downloading the messages again
-	if skip_to_course_with_index == 0 and catch_up_directions is None:
-		processMessaging(pathThusFar, session)
-	
-
-	for courseIndex, courseURL in enumerate(courseList):
-		print('Dumping course with ID {} ({} of {}): {}'.format(courseURL, (courseIndex + 1), len(courseList), courseNameDict[courseURL].encode('ascii', 'ignore')))
-		if courseIndex + 1 < skip_to_course_with_index:
-			continue
-		if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
+		if not has_access_to_institution:
+			print('It does not appear you have access to the It\'s Learning site of', institution)
+			print('Skipping to the next one.')
 			continue
 
-		course_response = session.get(itslearning_course_base_url + "?LocationID=" + courseURL + "&LocationType=1", allow_redirects=True)
+		
 
-		root_folder_url_index = course_response.text.find(itslearning_folder_base_url)
-		root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
-		root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
+		print('Accessing It\'s Learning')
 
-		course_folder = pathThusFar + '/' + sanitiseFilename(courseNameDict[courseURL])
+		innsida_outgoing_response = session.get(itslearning_url[institution], allow_redirects = True)
 
-		processBulletins(course_folder, itslearning_bulletin_base_url + courseURL, session, courseURL)
+		# Same story as before. The page goes through FEIDE, which has a built-in form we need to auto-submit
 
-		processFolder(course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
+		itslearning_main_page = do_feide_relay(session, innsida_outgoing_response)
 
-	print('Done. Everything was downloaded successfully!')
-	input('Press Enter to exit.')
+		print('Listing courses')
+
+		# Part 1: Obtain session-specific form
+
+		course_list_response = session.get(itsleaning_course_list[institution], allow_redirects = True)
+		course_list_page = fromstring(course_list_response.text)
+		course_list_form = course_list_page.forms[0]
+		
+		found_field = False
+		for form_field in course_list_form.fields:
+			if form_field.startswith('ctl26$ctl00'):
+				course_list_form.fields[form_field] = 'All'
+				found_field = True
+
+		if not found_field:
+			print('The script was not able to select all courses. Would you like to continue and only download the courses marked as favourite or active?')
+			print('Type "continue" to only download active or favourited courses. Otherwise, the script will abort.')
+			decision = input('Continue? ')
+			if not decision == 'continue':
+				print('Download aborted.')
+				sys.exit(0)
+
+		if found_field:
+			course_list_dict = convert_lxml_form_to_requests(course_list_form)
+
+		# Part 2: Show all courses
+
+			all_courses_response = session.post(itsleaning_course_list[institution], data=course_list_dict, allow_redirects = True)
+			all_courses_page = fromstring(all_courses_response.text)
+
+		else:
+			# Just use the page we received instead
+			all_courses_page = course_list_page
+
+		# Part 3: Extract the course names
+
+		courseList = []
+		courseNameDict = {}
+
+		# Not a great way of doing this; assumes page structure. Should work for the very near future though.
+		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
+		courseTableElement = courseTableDivElement[0]
+		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
+			if index == 0:
+				continue
+			# Extract the course ID from the URL
+			courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
+			courseList.append(courseURL)
+			courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
+
+		pathThusFar = output_folder_name
+
+		print('Found', str(len(courseList)), 'courses.')
+
+		# If it is desirable to skip to a particular course, also skip downloading the messages again
+		if skip_to_course_with_index == 0 and catch_up_directions is None:
+			processMessaging(institution, pathThusFar, session)
+		
+
+		for courseIndex, courseURL in enumerate(courseList):
+			print('Dumping course with ID {} ({} of {}): {}'.format(courseURL, (courseIndex + 1), len(courseList), courseNameDict[courseURL].encode('ascii', 'ignore')))
+			if courseIndex + 1 < skip_to_course_with_index:
+				continue
+			if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
+				continue
+
+			course_response = session.get(itslearning_course_base_url[institution] + "?LocationID=" + courseURL + "&LocationType=1", allow_redirects=True)
+
+			root_folder_url_index = course_response.text.find(itslearning_folder_base_url[institution])
+			root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
+			root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
+
+			course_folder = pathThusFar + '/' + sanitiseFilename(courseNameDict[courseURL])
+
+			processBulletins(institution, course_folder, itslearning_bulletin_base_url[institution] + courseURL, session, courseURL)
+
+			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
+
+		print('Done. Everything was downloaded successfully!')
+		input('Press Enter to exit.')
 
 
 
