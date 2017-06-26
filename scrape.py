@@ -222,6 +222,12 @@ old_messaging_api_url = {
 itslearning_picture_url = {
 	'ntnu': 'https://ntnu.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl=', 
 	'hist': 'https://hist.itslearning.com/picture/view_picture.aspx?PictureID={}&FolderID=-1&ChildID=-1&DashboardHierarchyID=-1&DashboardName=&ReturnUrl='}
+itslearning_online_test_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Ntt/EditTool/ViewTest.aspx?TestID={}',
+	'hist': 'https://hist.itslearning.com/Ntt/EditTool/ViewTest.aspx?TestID={}'}
+itslearning_online_test_details_postback_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Ntt/EditTool/ViewTestResults.aspx?TestResultId={}',
+	'hist': 'https://hist.itslearning.com/Ntt/EditTool/ViewTestResults.aspx?TestResultId={}'}
 itslearning_new_messaging_api_url = {
 	'ntnu': 'https://ntnu.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15',
 	'hist': 'https://hist.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15'}
@@ -378,19 +384,21 @@ def download_file(institution, url, destination_directory, session, index=None, 
 	# Add sleep for rate limiting
 	delay()
 
+	return filename
+
 def doPostBack(page_url, postback_action, page_document):
-	pagination_form = None
+	postback_form = None
 	for form in page_document.forms:
 		if '__EVENTTARGET' in form.fields:
-			pagination_form = form
+			postback_form = form
 			break
 
-	if pagination_form is None:
+	if postback_form is None:
 		raise Error('No postback form found on page!\nURL: ' + page_url)
 
-	pagination_form = page_document.forms[0]
-	pagination_form.fields['__EVENTTARGET'] = postback_action
-	post_data = convert_lxml_form_to_requests(pagination_form)
+	postback_form = page_document.forms[0]
+	postback_form.fields['__EVENTTARGET'] = postback_action
+	post_data = convert_lxml_form_to_requests(postback_form)
 
 	# Submitting the form to obtain the next page
 	headers = {}
@@ -1002,6 +1010,181 @@ def processAssignment(institution, pathThusFar, assignmentURL, session):
 			else:
 				pages_remaining = False
 
+def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
+	online_test_response = session.get(nttUrl, allow_redirects=True)
+	online_test_document = fromstring(online_test_response.text)
+
+	test_title = online_test_document.get_element_by_id('ctl05_TT').text_content()
+	print('\tDownloading Online Test:', test_title.encode('ascii', 'ignore'))
+
+	dumpDirectory = pathThusFar + '/Online Test - ' + test_title
+	dumpDirectory = sanitisePath(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
+
+	results_root_element = online_test_document.get_element_by_id('ctl39_ResultsTable_table')
+	test_info_elements = online_test_document.find_class('itsl-detailed-info')
+
+	
+	# Extracting test information
+	info_file_contents = ''
+
+	for info_element in test_info_elements:
+		for info_list_element in info_element:
+			info_file_contents += info_list_element[0].text_content() + ' ' + info_list_element[1].text_content() + '\n'
+
+	bytesToTextFile(info_file_contents.encode('utf-8'), dumpDirectory + '/Test Information' + output_text_extension)
+
+	# Download test answers
+
+	table_headers = []
+	for index, table_row in enumerate(results_root_element):
+		# results_root_element[0] is a <caption> element
+		if index == 0:
+			continue
+		# results_root_element[1] contains table headers
+		elif index == 1:
+			for table_header in results_root_element[1]:
+				table_headers.append(table_header.text_content())
+			continue
+		# The remainder of the table rows are attempts we want to save.
+		attempt_file_contents = ''
+		
+		attempt_index = index - 1
+		details_URL = None
+
+		for cell_index, table_cell in enumerate(table_row):
+			table_cell_name = table_headers[cell_index]
+			table_cell_content = table_cell.text_content()
+			if table_cell_name == 'Details':
+				details_URL = table_cell[0].get('href')
+			else:
+				attempt_file_contents += table_cell_name + ': ' + table_cell_content + '\n'
+		
+		# Only dumping the details afterwards so that we get a nice header in the output file containing the attempt details.
+		if details_URL is not None:
+			details_page_response = session.get(itslearning_root_url[institution] + details_URL, allow_redirects=True)
+			details_page_document = fromstring(details_page_response.text)
+			
+			attempt_file_contents += '\n'
+
+			# Dumping result data shown on page
+			for result_details_element in details_page_document.find_class('ntt-test-result-status-label'):
+				result_details_label = result_details_element.text_content().strip()
+				result_details_value = result_details_element.getnext().text_content().strip().replace('  ', ' ').replace('\n', '')
+				attempt_file_contents += result_details_label + ' ' + result_details_value + '\n'
+
+			total_assessment_element = details_page_document.find_class('ccl-assess-badge')
+			if len(total_assessment_element) > 0:
+				attempt_file_contents += 'Assessment: ' + total_assessment_element[0].text_content().strip() + '\n'
+
+			last_page_dumped = False
+
+			attempt_file_contents += '\n-------------- Answers --------------\n\n'
+
+			question_index = 1
+			page_index = 1
+			question_table_body = details_page_document.get_element_by_id('ctl00_ContentPlaceHolder_ResultsGrid_TB')
+
+			attemptDirectory = dumpDirectory + '/Attempt ' + str(attempt_index)
+			attemptDirectory = makeDirectories(attemptDirectory)
+
+			while len(question_table_body) > 0:
+				for question_element in question_table_body:
+					print('\tSaving question', question_index)
+					question_link = itslearning_root_url[institution] + question_element[0][1].get('href')
+					
+					question_response = session.get(question_link, allow_redirects=True)
+					question_document = fromstring(question_response.text)
+
+					question_title = question_element[1].text_content()
+					question_result = question_document.find_class('question-result')[0].text_content()
+
+					attempt_file_contents += 'Question ' + str(question_index) + ': ' + question_title + '\n\n'
+					attempt_file_contents += question_result + '\n'
+
+					try:
+						question_options_table = question_document.get_element_by_id('qti-choiceinteraction-container')
+
+						for option_index, question_options_row in enumerate(question_options_table):
+							if option_index == 0:
+								attempt_file_contents += question_options_row.text_content() + '\n'
+								continue
+							if question_options_row.get('class') is not None and 'checkedrow' in question_options_row.get('class'):
+								attempt_file_contents += 'Option (selected): ' + question_options_row.text_content() + '\n'
+							else:
+								attempt_file_contents += 'Option: ' + question_options_row.text_content() + '\n'
+					except Exception:
+						attempt_file_contents += 'Non Multiple Choice question. You can find the entire page in the folder titled "Attempt {}".\n'.format(question_index)
+
+					# Need to download images from hotspot questions
+					content_divs = question_document.find_class('content')
+					for content_div in content_divs:
+						for image_tag in content_div.iterfind(".//img"):
+
+							image_URL = image_tag.get('src')
+
+							# For some reason there can be images containing nothing on a page. No idea why.
+							if image_URL is None: 
+								continue
+
+							# Special case for relative URL's: drop the It's Learning root URL in front of it
+							if not image_URL.startswith('http'):
+								image_URL = itslearning_root_url[institution] + image_URL
+
+							filename = download_file(institution, image_URL, attemptDirectory, session)
+							attempt_file_contents += 'Attachment image: ' + filename + '\n'
+
+							delay()
+					
+					bytesToTextFile(question_response.text.encode('utf-8'), attemptDirectory + '/Question ' + str(question_index) + '.html')
+
+					attempt_file_contents += '\n'
+
+
+					delay()
+					question_index += 1
+
+				print('\tPage finished, loading next one.')
+				postback_form = None
+				for form in details_page_document.forms:
+					if '__EVENTTARGET' in form.fields:
+						postback_form = form
+						break
+
+				if postback_form is None:
+					raise Error('No postback form found on page!\nURL: ' + details_URL)
+
+				# Extracting the destination URL from the form action field.
+				# The URL starts with ./, so I'm removing the dot to obtain a complete URL
+				form_action_url = itslearning_root_url[institution] + details_URL
+
+				page_index += 1
+
+				# This specific page requires these additional elements to do the postback
+				postback_form = details_page_document.forms[0]
+				postback_form.fields['__EVENTTARGET'] = 'ctl00$ContentPlaceHolder$ResultsGrid'
+				postback_form.fields['ctl00$ContentPlaceHolder$ResultsGrid$HPN'] = str(page_index)
+				postback_form.fields['ctl00$ContentPlaceHolder$ResultsGrid$HSE'] = ''
+				postback_form.fields['ctl00$ContentPlaceHolder$ResultsGrid$HGC'] = ''
+				postback_form.fields['ctl00$ContentPlaceHolder$ResultsGrid$HFI'] = ''
+
+				post_data = convert_lxml_form_to_requests(postback_form)
+
+				# Submitting the form to obtain the next page
+				headers = {}
+				headers['Referer'] = form_action_url
+
+				details_page_response = session.post(form_action_url, headers=headers, data=post_data, allow_redirects=True)
+				details_page_document = fromstring(details_page_response.text)
+				question_table_body = details_page_document.get_element_by_id('ctl00_ContentPlaceHolder_ResultsGrid_TB')
+				delay()
+			print('\tAll pages have been loaded.')
+		else:
+			print('ERROR: COULD NOT FIND DETAILS PAGE OF ONLINE TEST.')
+			print('NO DETAILS WILL BE SAVED OF THIS TEST.')
+
+
+		bytesToTextFile(attempt_file_contents.encode('utf-8'), dumpDirectory + '/Attempt ' + str(attempt_index) + output_text_extension)
 
 
 def processFile(institution, pathThusFar, fileURL, session):
@@ -1096,6 +1279,9 @@ def processFolder(institution, pathThusFar, folderURL, session, courseIndex, fol
 			elif item_url.startswith('/picture'):
 				pass
 				processPicture(institution, pathThusFar, itslearning_picture_url[institution].format(item_url.split('=')[1]), session)
+			elif item_url.startswith('/Ntt'):
+				pass
+				processOnlineTest(institution, pathThusFar, itslearning_online_test_url[institution].format(item_url.split('=')[1]), item_url.split('=')[1], session)
 			else:
 				print('Warning: Skipping unknown URL:', item_url.encode('ascii', 'ignore'))
 		except Exception:
