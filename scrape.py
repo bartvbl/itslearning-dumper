@@ -285,7 +285,7 @@ def dumpToOverflow(content, filename):
 	global overflow_count
 	overflow_count += 1
 	basename = os.path.basename(sanitisePath(filename))
-	overflowDirectory = output_folder_name + 'Overflowed Files'
+	overflowDirectory = output_folder_name + '/Overflowed Files'
 	if not os.path.exists(overflowDirectory):
 		overflowDirectory = makeDirectories(overflowDirectory)
 	total_path = sanitisePath(overflowDirectory + '/' + str(overflow_count) + '_' + basename)
@@ -564,10 +564,20 @@ def processLearningToolElement(institution, pathThusFar, elementURL, session):
 	element_title = sanitiseFilename(element_title)
 	print('\tDownloaded Learning Tool Element: ', element_title.encode('ascii', 'ignore'))
 
+	dumpDirectory = pathThusFar + '/Learning Tool Element - ' + element_title
+	dumpDirectory = sanitisePath(dumpDirectory)
+	dumpDirectory = makeDirectories(dumpDirectory)
+
 	frameSrc = element_document.get_element_by_id('ctl00_ContentPlaceHolder_ExtensionIframe').get('src')
 
 	frame_content_response = session.get(frameSrc, allow_redirects=True)
-	bytesToTextFile(frame_content_response.content, pathThusFar + '/Learning Tool Element - ' + element_title + output_text_extension)
+	bytesToTextFile(frame_content_response.content, dumpDirectory + '/page_contents' + output_text_extension)
+
+	frame_content_document = fromstring(frame_content_response.text)
+	for file_link in frame_content_document.find_class('file-link-link'):
+		link_href = file_link[0].get('href')
+		link_filename = file_link[0].get('download')
+		download_file(institution, link_href, dumpDirectory, session, filename=link_filename)
 
 def processPicture(institution, pathThusFar, pictureURL, session):
 	picture_response = session.get(pictureURL, allow_redirects=True)
