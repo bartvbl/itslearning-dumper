@@ -157,11 +157,12 @@ innsida = 'https://innsida.ntnu.no'
 
 feide_base_url = 'https://idp.feide.no/simplesaml/module.php/feide/login.php'
 
-institutions = ['ntnu', 'hist']
+institutions = ['hist', 'ntnu']
 
-itslearning_url = {
+itslearning_gateway_url = {
 	'ntnu': 'https://innsida.ntnu.no/sso?target=itslearning',
-	'hist': 'https://innsida.ntnu.no/lms-hist'}
+	'hist': 'https://hist.itslearning.com/Index.aspx'}
+hist_login_postback_target = 'https://hist.itslearning.com/'
 
 
 itsleaning_course_list = {
@@ -170,6 +171,9 @@ itsleaning_course_list = {
 itslearning_course_base_url = {
 	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx', 
 	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx'}
+itslearning_login_landing_page = {
+	'ntnu': 'https://ntnu.itslearning.com/DashboardMenu.aspx',
+	'hist': 'https://hist.itslearning.com/DashboardMenu.aspx'}
 itslearning_bulletin_base_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/course.aspx?CourseId=', 
 	'hist': 'https://hist.itslearning.com/Course/course.aspx?CourseId='}
@@ -225,7 +229,7 @@ base64_png_image_url = {
 	'ntnu': 'https://ntnu.itslearning.comdata:image/png;base64,',
 	'hist': 'https://hist.itslearning.comdata:image/png;base64,'}
 base64_jpeg_image_url = {
-	'ntnu': 'https://ntnu.itslearning.comdata:image/jpeg;base64,'
+	'ntnu': 'https://ntnu.itslearning.comdata:image/jpeg;base64,',
 	'hist': 'https://hist.itslearning.comdata:image/jpeg;base64,'}
 
 innsida_login_parameters = {'SessionExpired': 0}
@@ -374,6 +378,28 @@ def download_file(institution, url, destination_directory, session, index=None, 
 	# Add sleep for rate limiting
 	delay()
 
+def doPostBack(page_url, postback_action, page_document):
+	pagination_form = None
+	for form in page_document.forms:
+		if '__EVENTTARGET' in form.fields:
+			pagination_form = form
+			break
+
+	if pagination_form is None:
+		raise Error('No postback form found on page!\nURL: ' + page_url)
+
+	pagination_form = page_document.forms[0]
+	pagination_form.fields['__EVENTTARGET'] = postback_action
+	post_data = convert_lxml_form_to_requests(pagination_form)
+
+	# Submitting the form to obtain the next page
+	headers = {}
+	headers['Referer'] = page_url
+
+	messaging_response = session.post(page_url, headers=headers, data=post_data, allow_redirects=True)
+
+	return messaging_response
+
 def loadPaginationPage(page_url, current_page_document, backpatch_character_index = 6):
 	next_page_button = current_page_document.find_class('previous-next')
 	found_next_button = False
@@ -395,30 +421,8 @@ def loadPaginationPage(page_url, current_page_document, backpatch_character_inde
 	post_back_event = list(post_back_event)
 	post_back_event[backpatch_character_index] = '$'
 	post_back_event = ''.join(post_back_event)
-	#print('Pagination load debug info:')
-	#print(etree.tostring(next_page_button))
-	#print(post_back_event)
-	#print(page_url)
 
-	# Editing the necessary form field
-	pagination_form = None
-	for form in current_page_document.forms:
-		if '__EVENTTARGET' in form.fields:
-			pagination_form = form
-			break
-
-	if pagination_form is None:
-		raise Error('No pagination form found on page!')
-
-	pagination_form = current_page_document.forms[0]
-	pagination_form.fields['__EVENTTARGET'] = post_back_event
-	post_data = convert_lxml_form_to_requests(pagination_form)
-
-	# Submitting the form to obtain the next page
-	headers = {}
-	headers['Referer'] = page_url
-
-	messaging_response = session.post(page_url, headers=headers, data=post_data, allow_redirects=True)
+	messaging_response = doPostBack(page_url, post_back_event, current_page_document)
 
 	return True, messaging_response
 
@@ -1487,7 +1491,8 @@ with requests.Session() as session:
 	print('To continue, the script needs to know your FEIDE login credentials.')
 	print('To do so, type in your NTNU/FEIDE username, press Enter, then type in your password, and press Enter again.')
 	print()
-	print('At this time, only login for NTNU users is supported. If you\'re a student from what was previously known as HiST, and would like to help me out getting login for HiST students to work, please contact me at bart.van.blokland@ntnu.no.')
+	print('Both content from the HiST and NTNU sites is downloaded.')
+	print('Access to each of these will be detected automatically by the program.')
 	print()
 	print('NOTE: when the program asks for your password, for your security the characters you type are hidden.')
 	print('Just type in your password as you normally would, and press Enter.')
@@ -1523,24 +1528,39 @@ with requests.Session() as session:
 
 		has_access_to_institution = False
 		if institution == 'ntnu':
-			pass
+			try:
+				innsida_outgoing_response = session.get(itslearning_gateway_url[institution], allow_redirects = True)
+				itslearning_main_page = do_feide_relay(session, innsida_outgoing_response)
+				has_access_to_institution = itslearning_login_landing_page[institution] in itslearning_main_page.url
+			except Exception:
+				# If anything unexpected happens, it's likely we've stumbled across a case of being denied access
+				has_access_to_institution = False
+
 		elif institution == 'hist':
-			pass
+			try:
+				hist_login_page = session.get(itslearning_gateway_url[institution], allow_redirects = True)
+				hist_login_page_document = fromstring(hist_login_page.text)
+				postback_action = 'ctl00$ContentPlaceHolder1$federatedLoginButtons$ctl00$ctl00'
+				hist_postback_response = doPostBack(hist_login_postback_target, postback_action, hist_login_page_document)
+				# HiST does a double 'autosubmit form' relay instead of one.
+				hist_first_relay_response = do_feide_relay(session, hist_postback_response)
+				hist_second_relay_response = do_feide_relay(session, hist_first_relay_response)
+				has_access_to_institution = itslearning_login_landing_page[institution] in hist_second_relay_response.url
+			except Exception:
+				# If anything unexpected happens, it's likely we've stumbled across a case of being denied access
+				has_access_to_institution = False
 
 		if not has_access_to_institution:
-			print('It does not appear you have access to the It\'s Learning site of', institution)
+			print('It does not appear you have access to the It\'s Learning site of', institution.upper())
 			print('Skipping to the next one.')
 			continue
 
-		
-
+		print('Access detected successfully.')
 		print('Accessing It\'s Learning')
 
-		innsida_outgoing_response = session.get(itslearning_url[institution], allow_redirects = True)
+		
 
-		# Same story as before. The page goes through FEIDE, which has a built-in form we need to auto-submit
-
-		itslearning_main_page = do_feide_relay(session, innsida_outgoing_response)
+		
 
 		print('Listing courses')
 
@@ -1620,8 +1640,9 @@ with requests.Session() as session:
 
 			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
 
-		print('Done. Everything was downloaded successfully!')
-		input('Press Enter to exit.')
+		print('All content from the institution site was downloaded successfully!')
+	print('Done. Everything was downloaded successfully!')
+	input('Press Enter to exit.')
 
 
 
