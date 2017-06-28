@@ -69,7 +69,17 @@ parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, d
 parser.add_argument('--enable-checkpoints', '-C', dest='enable_checkpoints', type=bool, default=False, 
 					help='Save the location of the last element encountered by the dumping process. Useful for quick recovery while debugging, or being able to continue the dumping process at a later date.')
 parser.add_argument('--output-text-extension', '-E', dest='output_extension', default='.html',
-					help='Specifies the extension given to produced plaintext files. Values ought to be either \'.html\' or \'.txt\'.')
+					help='Specifies the extension given to produced plaintext files. Values ought to be either ".html" or ".txt".')
+parser.add_argument('--institution', '-I', dest='institution', default=None, 
+					help='Only dump the content of a single institution site. This value should either be "ntnu" or "hist".')
+parser.add_argument('--list', '-L', dest='do_listing', action='store_true',
+					help='Don\'t dump anything, just list all courses and projects for each institution, along with their IDs.')
+parser.add_argument('--projects-only', '-P', dest='projects_only', action='store_true',
+					help='Only dump projects. No internal messages or courses are saved.')
+parser.add_argument('--courses-only', '-F', dest='courses_only', action='store_true',
+					help='Only dump courses. No internal messages or projects are saved.')
+parser.add_argument('--messages-only', '-M', dest='messaging_only', action='store_true',
+					help='Only dump internal messages. No courses or projects are saved.')
 
 args = parser.parse_args()
 
@@ -94,57 +104,58 @@ output_text_extension = args.output_extension
 # If this value is non-zero, also downloading of the messaging inbox will be skipped.
 # The index is 1-indexed, and corresponds to the course index listed on the print messages in the console
 # when the dumping of a new course is started.
-skip_to_course_with_index = args.skip_to_course
+skip_to_course_with_index = max(args.skip_to_course, (1 if args.courses_only or args.projects_only else 0))
 
 # --- INTRO ---
 
-print('----- It\'s Learning dump script -----')
-print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
-print()
-print('Greetings! This script will help you download your content off of It\'s Learning.')
-print('We\'ll start by selecting a directory where all the files are going to be saved.')
-if os.name == 'nt':
+if not args.do_listing:
+	print('----- It\'s Learning dump script -----')
+	print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
 	print()
-	print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
-	print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
-	print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
-	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
-	print('This will cause the least number of files to overflow.')
-print()
+	print('Greetings! This script will help you download your content off of It\'s Learning.')
+	print('We\'ll start by selecting a directory where all the files are going to be saved.')
+	if os.name == 'nt':
+		print()
+		print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
+		print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
+		print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
+		print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
+		print('This will cause the least number of files to overflow.')
+	print()
 
-# Determines where the program dumps its output. 
-# Note that the tailing slash is mandatory. 
-output_folder_name = args.output_dir
-is_directory_empty = False
-while not is_directory_empty:
-	if output_folder_name is None:
-		input('Press Enter to continue and select a directory.')
-		# User interface goodies
-		try:
-			# A bit ugly, but libraries already imported won't be imported again, so actually, all is good.
-			import tkinter
-			from tkinter.filedialog import askdirectory
-		except ImportError as ie:
-			print('')
-			print('!!! Could not import tkinter.')
-			print("If you don't have tkinter installed, specify the output dir by using the output parameter '--output-dir'")
-			print('')
-			raise ie
-		tkinter.Tk().withdraw()
-		output_folder_name = askdirectory()
-	if output_folder_name == '':
-		print('Folder selection cancelled. Aborting.')
-		sys.exit(0)
-	output_folder_name = os.path.abspath(output_folder_name)
-	is_directory_empty = not os.listdir(output_folder_name)
-	if not is_directory_empty:
-		print()
-		print('The selected directory is not empty, which the script needs to work properly.')
-		print('Press enter to try again, and select a new one.')
-		print('You can always create a new directory and select it; that one will always be empty.')
-		print()
-		input('Press Enter to continue and try selecting a directory again.')
-print('Selected output folder:', output_folder_name)
+	# Determines where the program dumps its output. 
+	# Note that the tailing slash is mandatory. 
+	output_folder_name = args.output_dir
+	is_directory_empty = False
+	while not is_directory_empty:
+		if output_folder_name is None:
+			input('Press Enter to continue and select a directory.')
+			# User interface goodies
+			try:
+				# A bit ugly, but libraries already imported won't be imported again, so actually, all is good.
+				import tkinter
+				from tkinter.filedialog import askdirectory
+			except ImportError as ie:
+				print('')
+				print('!!! Could not import tkinter.')
+				print("If you don't have tkinter installed, specify the output dir by using the output parameter '--output-dir'")
+				print('')
+				raise ie
+			tkinter.Tk().withdraw()
+			output_folder_name = askdirectory()
+		if output_folder_name == '':
+			print('Folder selection cancelled. Aborting.')
+			sys.exit(0)
+		output_folder_name = os.path.abspath(output_folder_name)
+		is_directory_empty = not os.listdir(output_folder_name)
+		if not is_directory_empty:
+			print()
+			print('The selected directory is not empty, which the script needs to work properly.')
+			print('Press enter to try again, and select a new one.')
+			print('You can always create a new directory and select it; that one will always be empty.')
+			print()
+			input('Press Enter to continue and try selecting a directory again.')
+	print('Selected output folder:', output_folder_name)
 
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
 # The state is stored in a small text file created inside the working directory.
@@ -169,14 +180,17 @@ itsleaning_course_list = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/AllCourses.aspx', 
 	'hist': 'https://hist.itslearning.com/Course/AllCourses.aspx'}
 itslearning_course_base_url = {
-	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx', 
-	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx'}
+	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx?LocationID={}&LocationType={}', 
+	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx?LocationID={}&LocationType={}'}
 itslearning_login_landing_page = {
 	'ntnu': 'https://ntnu.itslearning.com/DashboardMenu.aspx',
 	'hist': 'https://hist.itslearning.com/DashboardMenu.aspx'}
-itslearning_bulletin_base_url = {
+itslearning_course_bulletin_base_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/course.aspx?CourseId=', 
 	'hist': 'https://hist.itslearning.com/Course/course.aspx?CourseId='}
+itslearning_project_bulletin_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Project/project.aspx?ProjectId=', 
+	'hist': 'https://hist.itslearning.com/Project/project.aspx?ProjectId='}
 itslearning_bulletin_next_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}', 
 	'hist': 'https://hist.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}'}
@@ -231,6 +245,9 @@ itslearning_online_test_details_postback_url = {
 itslearning_new_messaging_api_url = {
 	'ntnu': 'https://ntnu.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15',
 	'hist': 'https://hist.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15'}
+itslearning_all_projects_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Project/AllProjects.aspx',
+	'hist': 'https://hist.itslearning.com/Project/AllProjects.aspx'}
 base64_png_image_url = {
 	'ntnu': 'https://ntnu.itslearning.comdata:image/png;base64,',
 	'hist': 'https://hist.itslearning.comdata:image/png;base64,'}
@@ -242,6 +259,10 @@ innsida_login_parameters = {'SessionExpired': 0}
 progress_file_location = os.path.join(os.getcwd(), 'saved_progress_state.txt')
 
 overflow_count = 0
+
+# If an override institution was specified, redefine the institutions list so it is the only one in there.
+if args.institution is not None:
+	institutions = [args.institution.lower()]
 
 # --- HELPER FUNCTIONS ---
 
@@ -282,7 +303,13 @@ def sanitiseFilename(filename):
 def makeDirectories(path):
 	cleaned_path = sanitisePath(path)
 	if not os.path.exists(cleaned_path):
-		os.makedirs(os.path.abspath(cleaned_path))
+		if len(cleaned_path) >= 254 and 'Windows' in platform.system():
+			print('COULD NOT CREATE A FOLDER AT: ')
+			print(cleaned_path)
+			print('Windows is unable to handle paths longer than 255 characters.')
+			print('Any files dumped in these directories will be redirected to the overflow directory.')
+		else:
+			os.makedirs(os.path.abspath(cleaned_path))
 	return cleaned_path
 
 # Windows has this amazing feature called "255 character file path limit"
@@ -394,7 +421,7 @@ def doPostBack(page_url, postback_action, page_document):
 			break
 
 	if postback_form is None:
-		raise Error('No postback form found on page!\nURL: ' + page_url)
+		raise Exception('No postback form found on page!\nURL: ' + page_url)
 
 	postback_form = page_document.forms[0]
 	postback_form.fields['__EVENTTARGET'] = postback_action
@@ -481,18 +508,25 @@ def processTest(institution, pathThusFar, testURL, session):
 
 			entry_name = table_entry_element[0 + index_offset].text_content()
 			entry_date = table_entry_element[1 + index_offset].text_content()
-			entry_url = itslearning_root_url[institution] + table_entry_element[2 + index_offset][0].get('href')[2:]
+			try:
+				entry_url = itslearning_root_url[institution] + table_entry_element[2 + index_offset][0].get('href')[2:]
+			except IndexError:
+				# Happens if you don't have access rights to view the responses.
+				entry_url = None
 
-			print('\tDownloading response from', entry_name.encode('ascii', 'ignore'))
 
-			entry_response = session.get(entry_url, allow_redirects=True)
-			entry_document = fromstring(entry_response.text)
+			if entry_url is not None:
+				print('\tDownloading response from', entry_name.encode('ascii', 'ignore'))
+				entry_response = session.get(entry_url, allow_redirects=True)
+				entry_document = fromstring(entry_response.text)
 
-			file_content = convert_html_content(etree.tostring(entry_document.find_class('itsl-formbox')[0]).decode('utf-8')).encode('utf-8')
+				file_content = convert_html_content(etree.tostring(entry_document.find_class('itsl-formbox')[0]).decode('utf-8')).encode('utf-8')
 
-			file_name = manualDumpDirectory + '/' + sanitiseFilename(entry_name) + ' ' + sanitiseFilename(entry_date) + output_text_extension
+				file_name = manualDumpDirectory + '/' + sanitiseFilename(entry_name) + ' ' + sanitiseFilename(entry_date) + output_text_extension
+				bytesToTextFile(file_content, file_name)
+			else:
+				print('\tSkipping response from', entry_name.encode('ascii', 'ignore'), ': No response present or insufficient privileges.')
 
-			bytesToTextFile(file_content, file_name)
 
 			row_index += 1
 
@@ -1338,7 +1372,7 @@ def processMessaging(institution, pathThusFar, session):
 	threadIndex = 0
 	messageBatch = loadMessagingPage(institution, batchIndex, session)
 
-	dumpDirectory = os.path.join(os.path.join(pathThusFar, 'Messaging'), 'New API')
+	dumpDirectory = os.path.join(os.path.join(pathThusFar, os.path.join('Messaging', institution.upper())), 'New API')
 	dumpDirectory = makeDirectories(dumpDirectory)
 	attachmentsDirectory = os.path.join(dumpDirectory, 'Attachments')
 	attachmentsDirectory = makeDirectories(attachmentsDirectory)
@@ -1372,7 +1406,7 @@ def processMessaging(institution, pathThusFar, session):
 
 	print('Downloading messages (send through the old API)')
 
-	dumpDirectory = pathThusFar + '/Messaging/Old API'
+	dumpDirectory = pathThusFar + '/Messaging/' + institution.upper() + '/Old API'
 	dumpDirectory = makeDirectories(dumpDirectory)
 	
 	
@@ -1462,6 +1496,31 @@ def processMessaging(institution, pathThusFar, session):
 					# End the loop when there are no more messages
 					messages_remaining = False
 					continue
+				except Exception as e:
+					print()
+					print('---- START OF DEBUG INFORMATION ----')
+					print()
+					traceback.print_exc()
+					print()
+					print('Message info:')
+					if 'message_element' in locals() and message_element is not None:
+						print(etree.tostring(message_element).encode('ascii', 'ignore'))
+					if 'message_header_element' in locals() and message_header_element is not None:
+						print(etree.tostring(message_header_element).encode('ascii', 'ignore'))
+					print()
+					print('---- END OF DEBUG INFORMATION')
+					print()
+					print('Oh no! A crash occurred while trying to download the following message:')
+					if 'message_url' in locals():
+						print('URL:', message_url)
+					if 'message_title' in locals():
+						print('Subject:', message_title)
+					print()
+					print('This unfortunately means the contents of this message have probably not have been saved.')
+					print('If you\'d like to help resolve this error, please send the marked debug information above to me.')
+					print('You can reach me at bart.van.blokland@ntnu.no.')
+					print('Press enter to skip this error, and continue to dump any remaining messages.')
+					input()
 				
 				message_index_on_page += 1
 				message_index += 1
@@ -1667,6 +1726,110 @@ def processBulletins(institution, pathThusFar, courseURL, session, courseID):
 
 					# No support for comments here. I couldn't find any course that had them.
 
+def list_courses_or_projects(institution, session, list_page_url, form_string, url_column_index, item_name):
+	course_list_response = session.get(list_page_url[institution], allow_redirects = True)
+	course_list_page = fromstring(course_list_response.text)
+	course_list_form = course_list_page.forms[0]
+	
+	found_field = False
+	for form_field in course_list_form.fields:
+		if form_field.startswith(form_string):
+			course_list_form.fields[form_field] = 'All'
+			found_field = True
+
+	if not found_field:
+		print('The script was not able to select all {}. Would you like to continue and only download the {} marked as favourite or active?'.format(item_name, item_name))
+		print('Type "continue" to only download active or favourited {}. Otherwise, the script will abort.'.format(item_name))
+		decision = input('Continue? ')
+		if not decision == 'continue':
+			print('Download aborted.')
+			sys.exit(0)
+
+	if found_field:
+		course_list_dict = convert_lxml_form_to_requests(course_list_form)
+
+	# Part 2: Show all courses
+
+		all_courses_response = session.post(list_page_url[institution], data=course_list_dict, allow_redirects = True)
+		all_courses_page = fromstring(all_courses_response.text)
+
+	else:
+		# Just use the page we received instead
+		all_courses_page = course_list_page
+
+	# Part 3: Extract the course names
+
+	courseList = []
+	courseNameDict = {}
+
+	pages_remaining = True
+	while pages_remaining:
+		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
+		courseTableElement = courseTableDivElement[0]
+		if len(courseTableElement) == 2 and len(courseTableElement[1]) == 1:
+			# Table is empty
+			pages_remaining = False
+			continue
+		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
+			if index == 0:
+				continue
+			# Extract the course ID from the URL
+			courseURL = courseTableRowElement[url_column_index][0].get('href').split("=")[1]
+			courseList.append(courseURL)
+			courseNameDict[courseURL] = courseTableRowElement[url_column_index][0][0].text
+		pages_remaining, course_page_response = loadPaginationPage(itsleaning_course_list[institution], all_courses_page, 5)
+		if pages_remaining:
+			all_courses_page = fromstring(course_page_response.text)
+
+	return courseList, courseNameDict
+
+def dump_courses_or_projects(institution, session, pathThusFar, itemList, itemNameDict, item_type):
+	for courseIndex, courseURL in enumerate(itemList):
+		try:
+			print('Dumping {} with ID {} ({} of {}): {}'.format(item_type, courseURL, (courseIndex + 1), len(itemList), itemNameDict[courseURL].encode('ascii', 'ignore')))
+			if courseIndex + 1 < skip_to_course_with_index:
+				continue
+			if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
+				continue
+
+			locationType = {'course': 1, 'project': 2}[item_type]
+
+			course_response = session.get(itslearning_course_base_url[institution].format(courseURL, locationType), allow_redirects=True)
+
+			root_folder_url_index = course_response.text.find(itslearning_folder_base_url[institution])
+			root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
+			root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
+
+			if item_type == 'course':
+				course_folder = pathThusFar + '/' + sanitiseFilename(itemNameDict[courseURL])
+				bulletin_url = itslearning_course_bulletin_base_url[institution]
+			elif item_type == 'project':
+				course_folder = pathThusFar + '/Projects/' + sanitiseFilename(itemNameDict[courseURL])
+				bulletin_url = itslearning_project_bulletin_base_url[institution]
+
+			if item_type == 'course':
+				processBulletins(institution, course_folder, bulletin_url + courseURL, session, courseURL)
+			elif item_type == 'project':
+				print('Unfortunately, bulletin messages in projects are currently not saved.')
+
+
+			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
+		except Exception as e:
+			print('\n\nSTART OF ERROR INFORMATION\n\n\n\n')
+			traceback.print_exc()
+			print('\n\n\n\nEND OF ERROR INFORMATION')
+			print()
+			print('Oh no! The script crashed while trying to download the following {}:'.format(item_type))
+			print('{}, ID {}, item {} of {}'.format(itemNameDict[courseURL].encode('ascii', 'ignore'), courseURL, (courseIndex + 1), len(itemList)))
+			print('Some information regarding the error is shown above (see the lines marked with (..) ERROR INFORMATION (..) ).')
+			print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
+			print('Would you like to skip this {} and move on to the next one?'.format(item_type))
+			print('Type \'skip\' if you\'d like to skip this {} and continue downloading any remaining ones, or anything else if you\'d like to abort the download.'.format(item_type))
+			decision = input('Skip this {}? '.format(item_type))
+			if decision != 'skip':
+				print('Download has been aborted.')
+				sys.exit(0)
+
 
 
 
@@ -1684,7 +1847,7 @@ def processBulletins(institution, pathThusFar, courseURL, session, courseID):
 # --- MAIN PROGRAM ---
 
 catch_up_directions = None
-if os.path.exists(progress_file_location):
+if os.path.exists(progress_file_location) and not args.do_listing:
 	print('It appears you have run this script previously. Would you like to continue where you left off?')
 	print('Type "continue" to fast-forward to where you left off. Type anything else to start over.')
 	decision = input('Confirm fast-forward: ')
@@ -1781,85 +1944,49 @@ with requests.Session() as session:
 
 		
 
-		
-
-		print('Listing courses')
+		print('Listing courses.')
 
 		# Part 1: Obtain session-specific form
 
-		course_list_response = session.get(itsleaning_course_list[institution], allow_redirects = True)
-		course_list_page = fromstring(course_list_response.text)
-		course_list_form = course_list_page.forms[0]
+		courseList, courseNameDict = list_courses_or_projects(institution, session, itsleaning_course_list, 'ctl26$ctl00', 2, 'courses')
 		
-		found_field = False
-		for form_field in course_list_form.fields:
-			if form_field.startswith('ctl26$ctl00'):
-				course_list_form.fields[form_field] = 'All'
-				found_field = True
+		print('Found {} courses.'.format(len(courseList)))
 
-		if not found_field:
-			print('The script was not able to select all courses. Would you like to continue and only download the courses marked as favourite or active?')
-			print('Type "continue" to only download active or favourited courses. Otherwise, the script will abort.')
-			decision = input('Continue? ')
-			if not decision == 'continue':
-				print('Download aborted.')
-				sys.exit(0)
+		print('Listing projects.')
 
-		if found_field:
-			course_list_dict = convert_lxml_form_to_requests(course_list_form)
+		projectList, projectNameDict = list_courses_or_projects(institution, session, itslearning_all_projects_url, 'ctl28$ctl00', 1, 'projects')
 
-		# Part 2: Show all courses
+		print('Found {} projects.'.format(len(projectList)))
 
-			all_courses_response = session.post(itsleaning_course_list[institution], data=course_list_dict, allow_redirects = True)
-			all_courses_page = fromstring(all_courses_response.text)
 
-		else:
-			# Just use the page we received instead
-			all_courses_page = course_list_page
-
-		# Part 3: Extract the course names
-
-		courseList = []
-		courseNameDict = {}
-
-		# Not a great way of doing this; assumes page structure. Should work for the very near future though.
-		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
-		courseTableElement = courseTableDivElement[0]
-		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
-			if index == 0:
-				continue
-			# Extract the course ID from the URL
-			courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
-			courseList.append(courseURL)
-			courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
+		if args.do_listing:
+			print()
+			print('The following courses were found:')
+			for courseIndex, courseURL in enumerate(courseList):
+				print('Course {}: {}'.format(courseIndex + 1, courseNameDict[courseURL].encode('ascii', 'ignore')))
+			print()
+			print('The following projects were found:')
+			for courseIndex, courseURL in enumerate(projectList):
+				print('Course {}: {}'.format(courseIndex + 1, projectNameDict[courseURL].encode('ascii', 'ignore')))
+			print()
+			# Skip past the actual dumping
+			continue
 
 		pathThusFar = output_folder_name
 
-		print('Found', str(len(courseList)), 'courses.')
-
 		# If it is desirable to skip to a particular course, also skip downloading the messages again
-		if skip_to_course_with_index == 0 and catch_up_directions is None:
+		if skip_to_course_with_index == 0 and catch_up_directions is None and not args.courses_only and not args.projects_only:
 			processMessaging(institution, pathThusFar, session)
+
+		if not args.messaging_only and not args.courses_only:
+			print('Dumping Projects')
+			dump_courses_or_projects(institution, session, pathThusFar, projectList, projectNameDict, 'project')
+		
+		if not args.messaging_only and not args.projects_only:
+			print('Dumping Courses.')
+			dump_courses_or_projects(institution, session, pathThusFar, courseList, courseNameDict, 'course')
 		
 
-		for courseIndex, courseURL in enumerate(courseList):
-			print('Dumping course with ID {} ({} of {}): {}'.format(courseURL, (courseIndex + 1), len(courseList), courseNameDict[courseURL].encode('ascii', 'ignore')))
-			if courseIndex + 1 < skip_to_course_with_index:
-				continue
-			if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
-				continue
-
-			course_response = session.get(itslearning_course_base_url[institution] + "?LocationID=" + courseURL + "&LocationType=1", allow_redirects=True)
-
-			root_folder_url_index = course_response.text.find(itslearning_folder_base_url[institution])
-			root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
-			root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
-
-			course_folder = pathThusFar + '/' + sanitiseFilename(courseNameDict[courseURL])
-
-			processBulletins(institution, course_folder, itslearning_bulletin_base_url[institution] + courseURL, session, courseURL)
-
-			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
 
 		print('All content from the institution site was downloaded successfully!')
 	print('Done. Everything was downloaded successfully!')
