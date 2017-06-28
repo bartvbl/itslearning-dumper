@@ -1181,6 +1181,9 @@ def dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_
 				table_headers.append(table_header.text_content())
 				table_header_classes.append(table_header.get('class'))
 			continue
+		# If the table row lacks cells on the first data row, the table is empty.
+		if index == 2 and len(table_row) == 1:
+			break
 		# The remainder of the table rows are attempts we want to save.
 		attempt_file_contents = ''
 		
