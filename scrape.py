@@ -400,7 +400,7 @@ def doPostBack(page_url, postback_action, page_document):
 			break
 
 	if postback_form is None:
-		raise Error('No postback form found on page!\nURL: ' + page_url)
+		raise Exception('No postback form found on page!\nURL: ' + page_url)
 
 	postback_form = page_document.forms[0]
 	postback_form.fields['__EVENTTARGET'] = postback_action
@@ -1834,16 +1834,21 @@ with requests.Session() as session:
 		courseList = []
 		courseNameDict = {}
 
-		# Not a great way of doing this; assumes page structure. Should work for the very near future though.
-		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
-		courseTableElement = courseTableDivElement[0]
-		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
-			if index == 0:
-				continue
-			# Extract the course ID from the URL
-			courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
-			courseList.append(courseURL)
-			courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
+		pages_remaining = True
+		while pages_remaining:
+			courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
+			courseTableElement = courseTableDivElement[0]
+			for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
+				if index == 0:
+					continue
+				# Extract the course ID from the URL
+				courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
+				courseList.append(courseURL)
+				courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
+			pages_remaining, course_page_response = loadPaginationPage(itsleaning_course_list[institution], all_courses_page, 5)
+			if pages_remaining:
+				all_courses_page = fromstring(course_page_response.text)
+
 
 		pathThusFar = output_folder_name
 
