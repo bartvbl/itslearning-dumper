@@ -72,6 +72,14 @@ parser.add_argument('--output-text-extension', '-E', dest='output_extension', de
 					help='Specifies the extension given to produced plaintext files. Values ought to be either ".html" or ".txt".')
 parser.add_argument('--institution', '-I', dest='institution', default=None, 
 					help='Only dump the content of a single institution site. This value should either be "ntnu" or "hist".')
+parser.add_argument('--list', '-L', dest='do_listing', action='store_true',
+					help='Don\'t dump anything, just list all courses and projects for each institution, along with their IDs.')
+parser.add_argument('--projects-only', '-P', dest='projects_only', action='store_true',
+					help='Only dump projects. No internal messages or courses are saved.')
+parser.add_argument('--courses-only', '-F', dest='courses_only', action='store_true',
+					help='Only dump courses. No internal messages or projects are saved.')
+parser.add_argument('--messages-only', '-M', dest='messaging_only', action='store_true',
+					help='Only dump internal messages. No courses or projects are saved.')
 
 args = parser.parse_args()
 
@@ -96,57 +104,58 @@ output_text_extension = args.output_extension
 # If this value is non-zero, also downloading of the messaging inbox will be skipped.
 # The index is 1-indexed, and corresponds to the course index listed on the print messages in the console
 # when the dumping of a new course is started.
-skip_to_course_with_index = args.skip_to_course
+skip_to_course_with_index = max(args.skip_to_course, (1 if args.courses_only or args.projects_only else 0))
 
 # --- INTRO ---
 
-print('----- It\'s Learning dump script -----')
-print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
-print()
-print('Greetings! This script will help you download your content off of It\'s Learning.')
-print('We\'ll start by selecting a directory where all the files are going to be saved.')
-if os.name == 'nt':
+if not args.do_listing:
+	print('----- It\'s Learning dump script -----')
+	print('Created by: Bart van Blokland (bart.van.blokland@ntnu.no)')
 	print()
-	print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
-	print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
-	print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
-	print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
-	print('This will cause the least number of files to overflow.')
-print()
+	print('Greetings! This script will help you download your content off of It\'s Learning.')
+	print('We\'ll start by selecting a directory where all the files are going to be saved.')
+	if os.name == 'nt':
+		print()
+		print('NOTE: Since you\'re a Windows user, please keep in mind that file paths can only be 255 characters long. This is a Windows limitation I can\'t do anything about.')
+		print('This script has a fallback option for files which can not be created due to this limitation by saving them to a single directory.')
+		print('For the best results, I recommend creating a folder in the root of your hard drive. For example; C:\\dump or D:\\dump.')
+		print('You can do this by clicking on My Computer while selecting a directory, double clicking on a hard drive, creating a directory named \'dump\', and selecting it.')
+		print('This will cause the least number of files to overflow.')
+	print()
 
-# Determines where the program dumps its output. 
-# Note that the tailing slash is mandatory. 
-output_folder_name = args.output_dir
-is_directory_empty = False
-while not is_directory_empty:
-	if output_folder_name is None:
-		input('Press Enter to continue and select a directory.')
-		# User interface goodies
-		try:
-			# A bit ugly, but libraries already imported won't be imported again, so actually, all is good.
-			import tkinter
-			from tkinter.filedialog import askdirectory
-		except ImportError as ie:
-			print('')
-			print('!!! Could not import tkinter.')
-			print("If you don't have tkinter installed, specify the output dir by using the output parameter '--output-dir'")
-			print('')
-			raise ie
-		tkinter.Tk().withdraw()
-		output_folder_name = askdirectory()
-	if output_folder_name == '':
-		print('Folder selection cancelled. Aborting.')
-		sys.exit(0)
-	output_folder_name = os.path.abspath(output_folder_name)
-	is_directory_empty = not os.listdir(output_folder_name)
-	if not is_directory_empty:
-		print()
-		print('The selected directory is not empty, which the script needs to work properly.')
-		print('Press enter to try again, and select a new one.')
-		print('You can always create a new directory and select it; that one will always be empty.')
-		print()
-		input('Press Enter to continue and try selecting a directory again.')
-print('Selected output folder:', output_folder_name)
+	# Determines where the program dumps its output. 
+	# Note that the tailing slash is mandatory. 
+	output_folder_name = args.output_dir
+	is_directory_empty = False
+	while not is_directory_empty:
+		if output_folder_name is None:
+			input('Press Enter to continue and select a directory.')
+			# User interface goodies
+			try:
+				# A bit ugly, but libraries already imported won't be imported again, so actually, all is good.
+				import tkinter
+				from tkinter.filedialog import askdirectory
+			except ImportError as ie:
+				print('')
+				print('!!! Could not import tkinter.')
+				print("If you don't have tkinter installed, specify the output dir by using the output parameter '--output-dir'")
+				print('')
+				raise ie
+			tkinter.Tk().withdraw()
+			output_folder_name = askdirectory()
+		if output_folder_name == '':
+			print('Folder selection cancelled. Aborting.')
+			sys.exit(0)
+		output_folder_name = os.path.abspath(output_folder_name)
+		is_directory_empty = not os.listdir(output_folder_name)
+		if not is_directory_empty:
+			print()
+			print('The selected directory is not empty, which the script needs to work properly.')
+			print('Press enter to try again, and select a new one.')
+			print('You can always create a new directory and select it; that one will always be empty.')
+			print()
+			input('Press Enter to continue and try selecting a directory again.')
+	print('Selected output folder:', output_folder_name)
 
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
 # The state is stored in a small text file created inside the working directory.
@@ -1738,6 +1747,10 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 	while pages_remaining:
 		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
 		courseTableElement = courseTableDivElement[0]
+		if len(courseTableElement) == 2 and len(courseTableElement[1]) == 1:
+			# Table is empty
+			pages_remaining = False
+			continue
 		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
 			if index == 0:
 				continue
@@ -1815,7 +1828,7 @@ def dump_courses_or_projects(institution, session, pathThusFar, itemList, itemNa
 # --- MAIN PROGRAM ---
 
 catch_up_directions = None
-if os.path.exists(progress_file_location):
+if os.path.exists(progress_file_location) and not args.do_listing:
 	print('It appears you have run this script previously. Would you like to continue where you left off?')
 	print('Type "continue" to fast-forward to where you left off. Type anything else to start over.')
 	decision = input('Confirm fast-forward: ')
@@ -1912,8 +1925,6 @@ with requests.Session() as session:
 
 		
 
-		
-
 		print('Listing courses.')
 
 		# Part 1: Obtain session-specific form
@@ -1928,18 +1939,33 @@ with requests.Session() as session:
 
 		print('Found {} projects.'.format(len(projectList)))
 
+
+		if args.do_listing:
+			print()
+			print('The following courses were found:')
+			for courseIndex, courseURL in enumerate(courseList):
+				print('Course {}: {}'.format(courseIndex + 1, courseNameDict[courseURL].encode('ascii', 'ignore')))
+			print()
+			print('The following projects were found:')
+			for courseIndex, courseURL in enumerate(projectList):
+				print('Course {}: {}'.format(courseIndex + 1, projectNameDict[courseURL].encode('ascii', 'ignore')))
+			print()
+			# Skip past the actual dumping
+			continue
+
 		pathThusFar = output_folder_name
 
-
 		# If it is desirable to skip to a particular course, also skip downloading the messages again
-		if skip_to_course_with_index == 0 and catch_up_directions is None:
+		if skip_to_course_with_index == 0 and catch_up_directions is None and not args.courses_only and not args.projects_only:
 			processMessaging(institution, pathThusFar, session)
 
-		print('Dumping Projects')
-		dump_courses_or_projects(institution, session, pathThusFar, projectList, projectNameDict, 'project')
+		if not args.messaging_only and not args.courses_only:
+			print('Dumping Projects')
+			dump_courses_or_projects(institution, session, pathThusFar, projectList, projectNameDict, 'project')
 		
-		print('Dumping Courses.')
-		dump_courses_or_projects(institution, session, pathThusFar, courseList, courseNameDict, 'course')
+		if not args.messaging_only and not args.projects_only:
+			print('Dumping Courses.')
+			dump_courses_or_projects(institution, session, pathThusFar, courseList, courseNameDict, 'course')
 		
 
 
