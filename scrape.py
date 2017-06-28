@@ -1199,7 +1199,7 @@ def dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_
 				attempt_file_contents += table_cell_name + ': ' + table_cell_content + '\n'
 				if is_teacher and table_cell_class is not None and 'attempt' in table_cell_class:
 					attempt_index = table_cell_content.strip()
-				if is_teacher and table_cell_class is not None and 'name' in table_cell_class:
+				if is_teacher and table_cell_class is not None and ('name' in table_cell_class or 'nameH' in table_cell_class):
 					student_name = table_cell_content.strip()
 		
 		# Only dumping the details afterwards so that we get a nice header in the output file containing the attempt details.
