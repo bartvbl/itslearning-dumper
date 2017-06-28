@@ -16,6 +16,7 @@ The following elements are downloaded by this script. Note that It's Learning ha
 6. Surveys - Downloads all responses, and the It's Learning generated reports.
 7. Discussions - Downloads all threads, including most linked images.
 8. Online Tests - Download all answers submitted as a student.
+9. Projects. All content is dumped, although bulletin messages are not supported at this time.
 
 ## Running
 
