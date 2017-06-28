@@ -69,7 +69,9 @@ parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, d
 parser.add_argument('--enable-checkpoints', '-C', dest='enable_checkpoints', type=bool, default=False, 
 					help='Save the location of the last element encountered by the dumping process. Useful for quick recovery while debugging, or being able to continue the dumping process at a later date.')
 parser.add_argument('--output-text-extension', '-E', dest='output_extension', default='.html',
-					help='Specifies the extension given to produced plaintext files. Values ought to be either \'.html\' or \'.txt\'.')
+					help='Specifies the extension given to produced plaintext files. Values ought to be either ".html" or ".txt".')
+parser.add_argument('--institution', '-I', dest='institution', default=None, 
+					help='Only dump the content of a single institution site. This value should either be "ntnu" or "hist".')
 
 args = parser.parse_args()
 
@@ -242,6 +244,10 @@ innsida_login_parameters = {'SessionExpired': 0}
 progress_file_location = os.path.join(os.getcwd(), 'saved_progress_state.txt')
 
 overflow_count = 0
+
+# If an override institution was specified, redefine the institutions list so it is the only one in there.
+if args.institution is not None:
+	institutions = [args.institution.lower()]
 
 # --- HELPER FUNCTIONS ---
 
@@ -1319,7 +1325,7 @@ def processMessaging(institution, pathThusFar, session):
 	threadIndex = 0
 	messageBatch = loadMessagingPage(institution, batchIndex, session)
 
-	dumpDirectory = os.path.join(os.path.join(pathThusFar, 'Messaging'), 'New API')
+	dumpDirectory = os.path.join(os.path.join(pathThusFar, os.path.join('Messaging', institution.upper())), 'New API')
 	dumpDirectory = makeDirectories(dumpDirectory)
 	attachmentsDirectory = os.path.join(dumpDirectory, 'Attachments')
 	attachmentsDirectory = makeDirectories(attachmentsDirectory)
@@ -1353,7 +1359,7 @@ def processMessaging(institution, pathThusFar, session):
 
 	print('Downloading messages (send through the old API)')
 
-	dumpDirectory = pathThusFar + '/Messaging/Old API'
+	dumpDirectory = pathThusFar + '/Messaging/' + institution.upper() + '/Old API'
 	dumpDirectory = makeDirectories(dumpDirectory)
 	
 	
