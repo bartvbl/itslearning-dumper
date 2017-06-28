@@ -171,14 +171,17 @@ itsleaning_course_list = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/AllCourses.aspx', 
 	'hist': 'https://hist.itslearning.com/Course/AllCourses.aspx'}
 itslearning_course_base_url = {
-	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx', 
-	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx'}
+	'ntnu': 'https://ntnu.itslearning.com/ContentArea/ContentArea.aspx?LocationID={}&LocationType={}', 
+	'hist': 'https://hist.itslearning.com/ContentArea/ContentArea.aspx?LocationID={}&LocationType={}'}
 itslearning_login_landing_page = {
 	'ntnu': 'https://ntnu.itslearning.com/DashboardMenu.aspx',
 	'hist': 'https://hist.itslearning.com/DashboardMenu.aspx'}
-itslearning_bulletin_base_url = {
+itslearning_course_bulletin_base_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/course.aspx?CourseId=', 
 	'hist': 'https://hist.itslearning.com/Course/course.aspx?CourseId='}
+itslearning_project_bulletin_base_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Project/project.aspx?ProjectId=', 
+	'hist': 'https://hist.itslearning.com/Project/project.aspx?ProjectId='}
 itslearning_bulletin_next_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}', 
 	'hist': 'https://hist.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}'}
@@ -233,6 +236,9 @@ itslearning_online_test_details_postback_url = {
 itslearning_new_messaging_api_url = {
 	'ntnu': 'https://ntnu.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15',
 	'hist': 'https://hist.itslearning.com/restapi/personal/instantmessages/messagethreads/v1?threadPage={}&maxThreadCount=15'}
+itslearning_all_projects_url = {
+	'ntnu': 'https://ntnu.itslearning.com/Project/AllProjects.aspx',
+	'hist': 'https://hist.itslearning.com/Project/AllProjects.aspx'}
 base64_png_image_url = {
 	'ntnu': 'https://ntnu.itslearning.comdata:image/png;base64,',
 	'hist': 'https://hist.itslearning.comdata:image/png;base64,'}
@@ -493,18 +499,25 @@ def processTest(institution, pathThusFar, testURL, session):
 
 			entry_name = table_entry_element[0 + index_offset].text_content()
 			entry_date = table_entry_element[1 + index_offset].text_content()
-			entry_url = itslearning_root_url[institution] + table_entry_element[2 + index_offset][0].get('href')[2:]
+			try:
+				entry_url = itslearning_root_url[institution] + table_entry_element[2 + index_offset][0].get('href')[2:]
+			except IndexError:
+				# Happens if you don't have access rights to view the responses.
+				entry_url = None
 
-			print('\tDownloading response from', entry_name.encode('ascii', 'ignore'))
 
-			entry_response = session.get(entry_url, allow_redirects=True)
-			entry_document = fromstring(entry_response.text)
+			if entry_url is not None:
+				print('\tDownloading response from', entry_name.encode('ascii', 'ignore'))
+				entry_response = session.get(entry_url, allow_redirects=True)
+				entry_document = fromstring(entry_response.text)
 
-			file_content = convert_html_content(etree.tostring(entry_document.find_class('itsl-formbox')[0]).decode('utf-8')).encode('utf-8')
+				file_content = convert_html_content(etree.tostring(entry_document.find_class('itsl-formbox')[0]).decode('utf-8')).encode('utf-8')
 
-			file_name = manualDumpDirectory + '/' + sanitiseFilename(entry_name) + ' ' + sanitiseFilename(entry_date) + output_text_extension
+				file_name = manualDumpDirectory + '/' + sanitiseFilename(entry_name) + ' ' + sanitiseFilename(entry_date) + output_text_extension
+				bytesToTextFile(file_content, file_name)
+			else:
+				print('\tSkipping response from', entry_name.encode('ascii', 'ignore'), ': No response present or insufficient privileges.')
 
-			bytesToTextFile(file_content, file_name)
 
 			row_index += 1
 
@@ -1685,6 +1698,106 @@ def processBulletins(institution, pathThusFar, courseURL, session, courseID):
 
 					# No support for comments here. I couldn't find any course that had them.
 
+def list_courses_or_projects(institution, session, list_page_url, form_string, url_column_index, item_name):
+	course_list_response = session.get(list_page_url[institution], allow_redirects = True)
+	course_list_page = fromstring(course_list_response.text)
+	course_list_form = course_list_page.forms[0]
+	
+	found_field = False
+	for form_field in course_list_form.fields:
+		if form_field.startswith(form_string):
+			course_list_form.fields[form_field] = 'All'
+			found_field = True
+
+	if not found_field:
+		print('The script was not able to select all {}. Would you like to continue and only download the {} marked as favourite or active?'.format(item_name, item_name))
+		print('Type "continue" to only download active or favourited {}. Otherwise, the script will abort.'.format(item_name))
+		decision = input('Continue? ')
+		if not decision == 'continue':
+			print('Download aborted.')
+			sys.exit(0)
+
+	if found_field:
+		course_list_dict = convert_lxml_form_to_requests(course_list_form)
+
+	# Part 2: Show all courses
+
+		all_courses_response = session.post(list_page_url[institution], data=course_list_dict, allow_redirects = True)
+		all_courses_page = fromstring(all_courses_response.text)
+
+	else:
+		# Just use the page we received instead
+		all_courses_page = course_list_page
+
+	# Part 3: Extract the course names
+
+	courseList = []
+	courseNameDict = {}
+
+	pages_remaining = True
+	while pages_remaining:
+		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
+		courseTableElement = courseTableDivElement[0]
+		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
+			if index == 0:
+				continue
+			# Extract the course ID from the URL
+			courseURL = courseTableRowElement[url_column_index][0].get('href').split("=")[1]
+			courseList.append(courseURL)
+			courseNameDict[courseURL] = courseTableRowElement[url_column_index][0][0].text
+		pages_remaining, course_page_response = loadPaginationPage(itsleaning_course_list[institution], all_courses_page, 5)
+		if pages_remaining:
+			all_courses_page = fromstring(course_page_response.text)
+
+	return courseList, courseNameDict
+
+def dump_courses_or_projects(institution, session, pathThusFar, itemList, itemNameDict, item_type):
+	for courseIndex, courseURL in enumerate(itemList):
+		try:
+			print('Dumping {} with ID {} ({} of {}): {}'.format(item_type, courseURL, (courseIndex + 1), len(itemList), itemNameDict[courseURL].encode('ascii', 'ignore')))
+			if courseIndex + 1 < skip_to_course_with_index:
+				continue
+			if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
+				continue
+
+			locationType = {'course': 1, 'project': 2}[item_type]
+
+			course_response = session.get(itslearning_course_base_url[institution].format(courseURL, locationType), allow_redirects=True)
+
+			root_folder_url_index = course_response.text.find(itslearning_folder_base_url[institution])
+			root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
+			root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
+
+			if item_type == 'course':
+				course_folder = pathThusFar + '/' + sanitiseFilename(itemNameDict[courseURL])
+				bulletin_url = itslearning_course_bulletin_base_url[institution]
+			elif item_type == 'project':
+				course_folder = pathThusFar + '/Projects/' + sanitiseFilename(itemNameDict[courseURL])
+				bulletin_url = itslearning_project_bulletin_base_url[institution]
+
+			if item_type == 'course':
+				processBulletins(institution, course_folder, bulletin_url + courseURL, session, courseURL)
+			elif item_type == 'project':
+				print('Unfortunately, bulletin messages in projects are currently not saved.')
+
+
+			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
+		except Exception as e:
+			print('\n\nSTART OF ERROR INFORMATION\n\n\n\n')
+			traceback.print_exc()
+			print('\n\n\n\nEND OF ERROR INFORMATION')
+			print()
+			print('Oh no! The script crashed while trying to download the following {}:'.format(item_type))
+			print('{}, ID {}, item {} of {}'.format(itemNameDict[courseURL].encode('ascii', 'ignore'), courseURL, (courseIndex + 1), len(itemList)))
+			print('Some information regarding the error is shown above (see the lines marked with (..) ERROR INFORMATION (..) ).')
+			print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
+			print('Would you like to skip this {} and move on to the next one?'.format(item_type))
+			print('Type \'skip\' if you\'d like to skip this {} and continue downloading any remaining ones, or anything else if you\'d like to abort the download.'.format(item_type))
+			decision = input('Skip this {}? '.format(item_type))
+			if decision != 'skip':
+				print('Download has been aborted.')
+				sys.exit(0)
+
 
 
 
@@ -1801,88 +1914,34 @@ with requests.Session() as session:
 
 		
 
-		print('Listing courses')
+		print('Listing courses.')
 
 		# Part 1: Obtain session-specific form
 
-		course_list_response = session.get(itsleaning_course_list[institution], allow_redirects = True)
-		course_list_page = fromstring(course_list_response.text)
-		course_list_form = course_list_page.forms[0]
+		courseList, courseNameDict = list_courses_or_projects(institution, session, itsleaning_course_list, 'ctl26$ctl00', 2, 'courses')
 		
-		found_field = False
-		for form_field in course_list_form.fields:
-			if form_field.startswith('ctl26$ctl00'):
-				course_list_form.fields[form_field] = 'All'
-				found_field = True
+		print('Found {} courses.'.format(len(courseList)))
 
-		if not found_field:
-			print('The script was not able to select all courses. Would you like to continue and only download the courses marked as favourite or active?')
-			print('Type "continue" to only download active or favourited courses. Otherwise, the script will abort.')
-			decision = input('Continue? ')
-			if not decision == 'continue':
-				print('Download aborted.')
-				sys.exit(0)
+		print('Listing projects.')
 
-		if found_field:
-			course_list_dict = convert_lxml_form_to_requests(course_list_form)
+		projectList, projectNameDict = list_courses_or_projects(institution, session, itslearning_all_projects_url, 'ctl28$ctl00', 1, 'projects')
 
-		# Part 2: Show all courses
-
-			all_courses_response = session.post(itsleaning_course_list[institution], data=course_list_dict, allow_redirects = True)
-			all_courses_page = fromstring(all_courses_response.text)
-
-		else:
-			# Just use the page we received instead
-			all_courses_page = course_list_page
-
-		# Part 3: Extract the course names
-
-		courseList = []
-		courseNameDict = {}
-
-		pages_remaining = True
-		while pages_remaining:
-			courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
-			courseTableElement = courseTableDivElement[0]
-			for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
-				if index == 0:
-					continue
-				# Extract the course ID from the URL
-				courseURL = courseTableRowElement[2][0].get('href').split("=")[1]
-				courseList.append(courseURL)
-				courseNameDict[courseURL] = courseTableRowElement[2][0][0].text
-			pages_remaining, course_page_response = loadPaginationPage(itsleaning_course_list[institution], all_courses_page, 5)
-			if pages_remaining:
-				all_courses_page = fromstring(course_page_response.text)
-
+		print('Found {} projects.'.format(len(projectList)))
 
 		pathThusFar = output_folder_name
 
-		print('Found', str(len(courseList)), 'courses.')
 
 		# If it is desirable to skip to a particular course, also skip downloading the messages again
 		if skip_to_course_with_index == 0 and catch_up_directions is None:
 			processMessaging(institution, pathThusFar, session)
+
+		print('Dumping Projects')
+		dump_courses_or_projects(institution, session, pathThusFar, projectList, projectNameDict, 'project')
+		
+		print('Dumping Courses.')
+		dump_courses_or_projects(institution, session, pathThusFar, courseList, courseNameDict, 'course')
 		
 
-		for courseIndex, courseURL in enumerate(courseList):
-			print('Dumping course with ID {} ({} of {}): {}'.format(courseURL, (courseIndex + 1), len(courseList), courseNameDict[courseURL].encode('ascii', 'ignore')))
-			if courseIndex + 1 < skip_to_course_with_index:
-				continue
-			if catch_up_directions is not None and courseIndex + 1 < catch_up_directions[0]:
-				continue
-
-			course_response = session.get(itslearning_course_base_url[institution] + "?LocationID=" + courseURL + "&LocationType=1", allow_redirects=True)
-
-			root_folder_url_index = course_response.text.find(itslearning_folder_base_url[institution])
-			root_folder_end_index = course_response.text.find("'", root_folder_url_index + 1)
-			root_folder_url = course_response.text[root_folder_url_index:root_folder_end_index]
-
-			course_folder = pathThusFar + '/' + sanitiseFilename(courseNameDict[courseURL])
-
-			processBulletins(institution, course_folder, itslearning_bulletin_base_url[institution] + courseURL, session, courseURL)
-
-			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
 
 		print('All content from the institution site was downloaded successfully!')
 	print('Done. Everything was downloaded successfully!')
