@@ -1449,7 +1449,7 @@ def processMessaging(institution, pathThusFar, session):
 					# End the loop when there are no more messages
 					messages_remaining = False
 					continue
-				except Error as e:
+				except Exception as e:
 					print()
 					print('---- START OF DEBUG INFORMATION ----')
 					print()
