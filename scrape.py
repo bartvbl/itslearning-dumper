@@ -189,8 +189,8 @@ itslearning_course_bulletin_base_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Course/course.aspx?CourseId=', 
 	'hist': 'https://hist.itslearning.com/Course/course.aspx?CourseId='}
 itslearning_project_bulletin_base_url = {
-	'ntnu': 'https://ntnu.itslearning.com/Project/project.aspx?ProjectId=', 
-	'hist': 'https://hist.itslearning.com/Project/project.aspx?ProjectId='}
+	'ntnu': 'https://ntnu.itslearning.com/Project/project.aspx?ProjectId={}&BulletinBoardAll=True', 
+	'hist': 'https://hist.itslearning.com/Project/project.aspx?ProjectId={}&BulletinBoardAll=True'}
 itslearning_bulletin_next_url = {
 	'ntnu': 'https://ntnu.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}', 
 	'hist': 'https://hist.itslearning.com/Bulletins/Page?courseId={}&boundaryLightBulletinId={}&boundaryLightBulletinCreatedTicks={}'}
@@ -413,7 +413,7 @@ def download_file(institution, url, destination_directory, session, index=None, 
 
 	return filename
 
-def doPostBack(page_url, postback_action, page_document):
+def doPostBack(page_url, postback_action, page_document, postback_parameter=None):
 	postback_form = None
 	for form in page_document.forms:
 		if '__EVENTTARGET' in form.fields:
@@ -425,6 +425,10 @@ def doPostBack(page_url, postback_action, page_document):
 
 	postback_form = page_document.forms[0]
 	postback_form.fields['__EVENTTARGET'] = postback_action
+
+	if postback_parameter is not None:
+		postback_form.fields['__EVENTARGUMENT'] = postback_parameter
+
 	post_data = convert_lxml_form_to_requests(postback_form)
 
 	# Submitting the form to obtain the next page
@@ -1044,7 +1048,7 @@ def processAssignment(institution, pathThusFar, assignmentURL, session):
 			else:
 				pages_remaining = False
 
-def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, attempt_index, attempt_file_contents):
+def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, attempt_index, student_name, attempt_file_contents):
 	details_page_response = session.get(itslearning_root_url[institution] + details_URL, allow_redirects=True)
 	details_page_document = fromstring(details_page_response.text)
 	
@@ -1068,7 +1072,7 @@ def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, a
 	page_index = 1
 	question_table_body = details_page_document.get_element_by_id('ctl00_ContentPlaceHolder_ResultsGrid_TB')
 
-	attemptDirectory = dumpDirectory + '/Attempt ' + str(attempt_index)
+	attemptDirectory = dumpDirectory + '/' + sanitiseFilename(student_name) + '/Attempt ' + str(attempt_index)
 	attemptDirectory = makeDirectories(attemptDirectory)
 
 	while len(question_table_body) > 0:
@@ -1164,6 +1168,50 @@ def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, a
 	print('\tAll pages have been loaded.')
 	return attempt_file_contents
 
+def dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_element, show_column_class, is_teacher):
+	table_headers = []
+	table_header_classes = []
+	for index, table_row in enumerate(results_root_element):
+		# results_root_element[0] is a <caption> element
+		if index == 0:
+			continue
+		# results_root_element[1] contains table headers
+		elif index == 1:
+			for table_header in results_root_element[1]:
+				table_headers.append(table_header.text_content())
+				table_header_classes.append(table_header.get('class'))
+			continue
+		# The remainder of the table rows are attempts we want to save.
+		attempt_file_contents = ''
+		
+		if not is_teacher:
+			attempt_index = index - 1
+			student_name = 'Own answer'
+		details_URL = None
+
+		for cell_index, table_cell in enumerate(table_row):
+			table_cell_name = table_headers[cell_index]
+			table_cell_class = table_header_classes[cell_index]
+			table_cell_content = table_cell.text_content()
+			if table_cell_class is not None and show_column_class in table_cell_class:
+				details_URL = table_cell[0].get('href')
+			else:
+				attempt_file_contents += table_cell_name + ': ' + table_cell_content + '\n'
+				if is_teacher and table_cell_class is not None and 'attempt' in table_cell_class:
+					attempt_index = table_cell_content.strip()
+				if is_teacher and table_cell_class is not None and 'name' in table_cell_class:
+					student_name = table_cell_content.strip()
+		
+		# Only dumping the details afterwards so that we get a nice header in the output file containing the attempt details.
+		if details_URL is not None:
+			attempt_file_contents = processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, attempt_index, student_name, attempt_file_contents)
+		else:
+			print('ERROR: COULD NOT FIND DETAILS PAGE OF ONLINE TEST.')
+			print('NO DETAILS WILL BE SAVED OF THIS TEST.')
+
+
+		bytesToTextFile(attempt_file_contents.encode('utf-8'), dumpDirectory + '/' + sanitiseFilename(student_name) + '/Attempt ' + str(attempt_index) + output_text_extension)
+
 def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 	online_test_response = session.get(nttUrl, allow_redirects=True)
 	online_test_document = fromstring(online_test_response.text)
@@ -1175,6 +1223,8 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 		is_teacher = True
 	else:
 		is_student = True
+
+	redirected_page_URL = online_test_response.url
 
 	test_title = online_test_document.get_element_by_id('ctl05_TT').text_content()
 	print('\tDownloading Online Test:', test_title.encode('ascii', 'ignore'))
@@ -1204,46 +1254,41 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 
 		# Download test answers
 
-		table_headers = []
-		table_header_classes = []
-		for index, table_row in enumerate(results_root_element):
-			# results_root_element[0] is a <caption> element
-			if index == 0:
-				continue
-			# results_root_element[1] contains table headers
-			elif index == 1:
-				for table_header in results_root_element[1]:
-					table_headers.append(table_header.text_content())
-					table_header_classes.append(table_header.get('class'))
-				continue
-			# The remainder of the table rows are attempts we want to save.
-			attempt_file_contents = ''
-			
-			attempt_index = index - 1
-			details_URL = None
-
-			for cell_index, table_cell in enumerate(table_row):
-				table_cell_name = table_headers[cell_index]
-				table_cell_class = table_header_classes[cell_index]
-				table_cell_content = table_cell.text_content()
-				if table_cell_class is not None and 'showH' in table_cell_class:
-					details_URL = table_cell[0].get('href')
-				else:
-					attempt_file_contents += table_cell_name + ': ' + table_cell_content + '\n'
-			
-			# Only dumping the details afterwards so that we get a nice header in the output file containing the attempt details.
-			if details_URL is not None:
-				attempt_file_contents = processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, attempt_index, attempt_file_contents)
-			else:
-				print('ERROR: COULD NOT FIND DETAILS PAGE OF ONLINE TEST.')
-				print('NO DETAILS WILL BE SAVED OF THIS TEST.')
-
-
-			bytesToTextFile(attempt_file_contents.encode('utf-8'), dumpDirectory + '/Attempt ' + str(attempt_index) + output_text_extension)
+		dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_element, 'showH', False)
 	if is_teacher:
-		# Read out entries from table
-		# Handle table pagination
-		# Create directory per student
+		# Read out test metadata
+		test_information_element = online_test_document.find_class('ccl-rwgm-column-1-2')[0]
+		test_description_element = online_test_document.find_class('ccl-rwgm-column-1-2')[1]
+
+		test_information_table = test_information_element.find_class('description')[0]
+		info_file_contents = ''
+
+		for info_element in test_information_table:
+			info_file_contents += info_element[0].text_content().strip() + ': ' + info_element[1].text_content().strip().replace('\n', '').replace('  ', ' ') + '\n'
+
+		info_file_contents = (info_file_contents + '\n\nDescription:\n').encode('utf-8') + etree.tostring(test_description_element[1], encoding='utf-8')
+
+		bytesToTextFile(info_file_contents, dumpDirectory + '/Test Information' + output_text_extension)
+
+		pages_remaining = True
+		page_id = 0
+		while pages_remaining:
+
+			# Read out entries from table
+			results_table_element = online_test_document.get_element_by_id('resultsTable_table')
+			dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_table_element, 'show', True)
+
+			# Handle table pagination
+			page_id += 1
+			print('\tLoading next page')
+			next_page_response = doPostBack(redirected_page_URL, 'resultsTable', online_test_document, postback_parameter='Paging:{}'.format(page_id))
+			online_test_document = fromstring(next_page_response.text)
+			results_table_element = online_test_document.get_element_by_id('resultsTable_table')
+
+			if len(results_table_element) == 3 and len(results_table_element[2]) == 1:
+				# Last page
+				pages_remaining = False
+
 
 
 def processFile(institution, pathThusFar, fileURL, session):
@@ -1504,9 +1549,9 @@ def processMessaging(institution, pathThusFar, session):
 					print()
 					print('Message info:')
 					if 'message_element' in locals() and message_element is not None:
-						print(etree.tostring(message_element).encode('ascii', 'ignore'))
+						print(etree.tostring(message_element))
 					if 'message_header_element' in locals() and message_header_element is not None:
-						print(etree.tostring(message_header_element).encode('ascii', 'ignore'))
+						print(etree.tostring(message_header_element))
 					print()
 					print('---- END OF DEBUG INFORMATION')
 					print()
@@ -1726,6 +1771,33 @@ def processBulletins(institution, pathThusFar, courseURL, session, courseID):
 
 					# No support for comments here. I couldn't find any course that had them.
 
+def processProjectBulletins(institution, pathThusFar, pageURL, session):
+	bulletin_response = session.get(pageURL, allow_redirects=True)
+	bulletin_document = fromstring(bulletin_response.text)
+
+	dumpDirectory = pathThusFar + '/Bulletins'
+	dumpDirectory = makeDirectories(dumpDirectory)
+
+	bulletin_elements = bulletin_document.find_class('newsitem')
+
+	for index, bulletin_element in enumerate(bulletin_elements):
+
+		bulletin_subject = convert_html_content(bulletin_element[0].text_content()).strip()
+		bulletin_message = convert_html_content(etree.tostring(bulletin_element[1], encoding='utf-8').decode('utf-8')).strip()
+		bulletin_author = convert_html_content(bulletin_element[2][0][0].text_content()).strip()
+		bulletin_post_date = convert_html_content(bulletin_element[2][0][1].text_content()).strip()
+
+		bulletin_file_content = 'Author: ' + bulletin_author + '\n'
+		bulletin_file_content += 'Posted on: ' + bulletin_post_date + '\n'
+		bulletin_file_content += 'Subject: ' + bulletin_subject + '\n'
+		bulletin_file_content += 'Message:\n\n' + bulletin_message
+
+		print('\tSaving bulletin by:', bulletin_author.encode('ascii', 'ignore'))
+
+		file_path = dumpDirectory + '/Bulletin ' + str(index + 1) + output_text_extension
+
+		bytesToTextFile(bulletin_file_content.encode('utf-8'), file_path)
+
 def list_courses_or_projects(institution, session, list_page_url, form_string, url_column_index, item_name):
 	course_list_response = session.get(list_page_url[institution], allow_redirects = True)
 	course_list_page = fromstring(course_list_response.text)
@@ -1807,10 +1879,26 @@ def dump_courses_or_projects(institution, session, pathThusFar, itemList, itemNa
 				course_folder = pathThusFar + '/Projects/' + sanitiseFilename(itemNameDict[courseURL])
 				bulletin_url = itslearning_project_bulletin_base_url[institution]
 
-			if item_type == 'course':
-				processBulletins(institution, course_folder, bulletin_url + courseURL, session, courseURL)
-			elif item_type == 'project':
-				print('Unfortunately, bulletin messages in projects are currently not saved.')
+			try:
+				if item_type == 'course':
+					processBulletins(institution, course_folder, bulletin_url + courseURL, session, courseURL)
+				elif item_type == 'project':
+					processProjectBulletins(institution, course_folder, bulletin_url.format(courseURL), session)
+			except Exception:
+				print('\n\nSTART OF ERROR INFORMATION\n\n\n\n')
+				traceback.print_exc()
+				print('\n\n\n\nEND OF ERROR INFORMATION')
+				print()
+				print('Oh no! The script crashed while trying to download Bulletin messages!')
+				print('{}, ID {}, item {} of {}'.format(itemNameDict[courseURL].encode('ascii', 'ignore'), courseURL, (courseIndex + 1), len(itemList)))
+				print('Some information regarding the error is shown above (see the lines marked with (..) ERROR INFORMATION (..) ).')
+				print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
+				print('Would you like to skip the bulletin messages of this {} and move on to the {} contents?'.format(item_type, item_type))
+				print('Type \'skip\' if you\'d like to skip the bulletin messages and continue downloading any remaining ones, or anything else if you\'d like to abort the download.'.format(item_type))
+				decision = input('Skip this {}? '.format(item_type))
+				if decision != 'skip':
+					print('Download has been aborted.')
+					sys.exit(0)
 
 
 			processFolder(institution, course_folder, root_folder_url, session, courseIndex, catch_up_state=catch_up_directions)
@@ -1959,6 +2047,7 @@ with requests.Session() as session:
 		print('Found {} projects.'.format(len(projectList)))
 
 
+		# Feature for listing courses and projects which the user has access to. Triggered by a console parameter.
 		if args.do_listing:
 			print()
 			print('The following courses were found:')
