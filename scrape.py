@@ -1443,6 +1443,31 @@ def processMessaging(institution, pathThusFar, session):
 					# End the loop when there are no more messages
 					messages_remaining = False
 					continue
+				except Error as e:
+					print()
+					print('---- START OF DEBUG INFORMATION ----')
+					print()
+					traceback.print_exc()
+					print()
+					print('Message info:')
+					if 'message_element' in locals() and message_element is not None:
+						print(etree.tostring(message_element).encode('ascii', 'ignore'))
+					if 'message_header_element' in locals() and message_header_element is not None:
+						print(etree.tostring(message_header_element).encode('ascii', 'ignore'))
+					print()
+					print('---- END OF DEBUG INFORMATION')
+					print()
+					print('Oh no! A crash occurred while trying to download the following message:')
+					if 'message_url' in locals():
+						print('URL:', message_url)
+					if 'message_title' in locals():
+						print('Subject:', message_title)
+					print()
+					print('This unfortunately means the contents of this message have probably not have been saved.')
+					print('If you\'d like to help resolve this error, please send the marked debug information above to me.')
+					print('You can reach me at bart.van.blokland@ntnu.no.')
+					print('Press enter to skip this error, and continue to dump any remaining messages.')
+					input()
 				
 				message_index_on_page += 1
 				message_index += 1
