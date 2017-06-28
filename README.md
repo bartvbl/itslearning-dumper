@@ -31,13 +31,18 @@ Alternatively, you can follow the steps below. For detailed step-by-step instruc
 
 The script has a number of command line parameters available for configuring the script.
 
-For an overview over all available command line paramters, use `python scrape.py --help`
+For an overview over all available command line paramters, use `python scrape.py --help` or `dumper_windows.exe --help` if using a build.
 
 * `--output-dir`: Determines the location where output files will be written to. Can be a relative path to the location of the script, or an absolute path. On Windows, I cannot recommend enough to place this directory at the **ROOT** of your hard drive (C:\, D:\, etc.), since the 255 character path name limit is easily surpassed. This parameter is mandatory on a system without a graphical interface.
 * `--rate-limit-delay`: The number of seconds the script waits after each request. Ensures requests are not sent at a high rate, reducing the load on the It's Learning servers.
 * `--skip-to-course`: As mentioned above, crashes may occur. Use this index to force the script to jump to a particular course, potentially hopping over a problematic one. The index is the same as the one printed out in the terminal (1-indexed). Set to 1 to only skip downloading internal messages.
 * `--output-text-extension`: Determines the extension output text files have. The specific format of the contents of these is different in most cases, but is in most cases plaintext with fragments of HTML. You might want to change this to `.txt` if preferable.
 * `--enable-checkpoints`: Enabling this will create a small text file in the working directory which keeps track of where the script left off. If the download takes too long, you can simply quit the script, and it will allow you to catch up to where you left off (it restarts the element it left off at, which should be close enough).
+* `--institution`: Only dump the content of a single institution site. This value should either be `ntnu` or `hist`.
+* `--list`: Don't dump anything, just list all courses and projects for each institution, along with their indices, which can be used as a parameter for `--ship-to-course`.
+* `--projects-only`: Only dump projects, nothing else.
+* `--courses-only`: Only dump courses, nothing else.
+* `--messages-only`: Only dump internal messages, nothing else.
 
 ## Beginner's User Guide
 
@@ -79,7 +84,7 @@ Good luck!
 
 The following issues are known, and will most likely not be fixed:
 
-* If you're a teacher in a course which uses online tests, the answers submitted by students are not saved.
+* If you're a teacher in a course which uses online tests, the answers submitted by students are not saved (hopefully coming soon).
 * Some images downloaded from places such as discussion forums are saved with filenames such as `showimage.aspx`. I have not built in automatic detection of file types, and some URL's do not provide file name information. You can rename these files to ones with a correct file extension to view them.
 * Attachments from unsent/draft messages in the old messaging system are not downloaded. 
 * Comments on old-style bulletins are not saved (I have not yet encountered a single course using these).
