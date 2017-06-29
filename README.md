@@ -14,11 +14,11 @@ The following elements are downloaded by this script. Note that It's Learning ha
 6. Surveys - Downloads all responses, and the It's Learning generated reports.
 7. Discussions - Downloads all threads, including most linked images.
 8. Online Tests - Download all answers submitted as a student, or all student submissions as a teacher.
-9. Projects. All content is dumped, including project bulletin messages.
+9. Projects - All content is dumped, including project bulletin messages.
 
 ## Running
 
-The easiest way of running this script is to head over to the Releases page (see top navigation on this page), and download a build from there.
+The easiest way of running this script is to head over to the [Releases](https://github.com/bartvbl/itslearning-dumper/releases) page and download a pre-packaged executable.
 
 Alternatively, you can follow the steps below. For detailed step-by-step instructions, see the "Beginner's user guide" section below.
 
