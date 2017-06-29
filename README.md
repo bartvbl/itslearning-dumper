@@ -1,8 +1,6 @@
-# It's Learning dump script
+# It's Learning Complete Backup Tool
 
 This script was written to export data from the course management system "It's Learning", as no proper method has been supplied for this previously. 
-
-*NOTE:* This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. I've attempted to avoid these as best as I can, and the script has multiple fallback options. Thus far the script has worked successfully for a large group of people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
 
 ## What does it do?
 
@@ -89,6 +87,10 @@ The following issues are known, and will most likely not be fixed:
 * Attachments from unsent/draft messages in the old messaging system are not downloaded. 
 * Files linked or attached to forum posts are not downloaded.
 * Comments on old-style bulletins are not saved (I have not yet encountered a single course using these).
+
+## Disclaimer
+
+This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. I've attempted to avoid these as best as I can, and the script has multiple fallback options. Thus far the script has worked successfully for a large group of people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
 
 ## Contributors
 
