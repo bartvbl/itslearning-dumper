@@ -6,6 +6,8 @@ This script was written to export data from the course management system "It's L
 
 The following elements are downloaded by this script. Note that It's Learning has had an overhaul in terms of visual appearance, but did not migrate older courses to the new visual style. As such these had to be implemented separately, and are as such listed separately.
 
+To my knowledge, this list covers all major features of It's Learning.
+
 1. Internal messaging - Both the "new" and "old" inboxes are supported.
 2. Course bulletins - Both "new" and "old" flavours are downloaded. Includes comments on new-style posts. Old-style text/information widgets are also downloaded.
 3. Assignments - Includes submissions by you, and if you teach a course, submissions from students. In both cases, grading, feedback and submitted files are downloaded.
