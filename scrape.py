@@ -305,7 +305,7 @@ def makeDirectories(path):
 	if not os.path.exists(cleaned_path):
 		if len(cleaned_path) >= 254 and 'Windows' in platform.system():
 			print('COULD NOT CREATE A FOLDER AT: ')
-			print(cleaned_path)
+			print(cleaned_path.encode('ascii', 'ignore'))
 			print('Windows is unable to handle paths longer than 255 characters.')
 			print('Any files dumped in these directories will be redirected to the overflow directory.')
 		else:
@@ -359,7 +359,7 @@ def download_file(institution, url, destination_directory, session, index=None, 
 		# Can occur in a case of an encoded image. If so, dump it.
 		if base64_png_image_url[institution] in url or base64_jpeg_image_url[institution] in url:
 			extension = url.split(':')[2].split(';')[0].split('/')[1]
-			print('\tDownloaded Base64 encoded {} image'.format(extension))
+			print('\tDownloaded Base64 encoded {} image'.format(extension).encode('ascii', 'ignore'))
 			start_index = url.index(',') + 1
 			base64_encoded_file_contents = url[start_index:]
 			decoded_bytes = base64.b64decode(base64_encoded_file_contents)
@@ -1207,6 +1207,8 @@ def dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_
 		
 		# Only dumping the details afterwards so that we get a nice header in the output file containing the attempt details.
 		if details_URL is not None:
+			if not 'attempt_index' in locals():
+				attempt_index = 1
 			attempt_file_contents = processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, attempt_index, student_name, attempt_file_contents)
 		else:
 			print('ERROR: COULD NOT FIND DETAILS PAGE OF ONLINE TEST.')
@@ -1397,7 +1399,7 @@ def processFolder(institution, pathThusFar, folderURL, session, courseIndex, fol
 			print('\n\n\n\nEND OF ERROR INFORMATION')
 			print()
 			print('Oh no! The script crashed while trying to download the following address:')
-			print(item_url)
+			print(item_url.encode('ascii', 'ignore'))
 			print('Some information regarding the error is shown above.')
 			print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
 			print('Would you like to skip this item and move on?')
@@ -1560,9 +1562,9 @@ def processMessaging(institution, pathThusFar, session):
 					print()
 					print('Oh no! A crash occurred while trying to download the following message:')
 					if 'message_url' in locals():
-						print('URL:', message_url)
+						print('URL:', message_url.encode('ascii', 'ignore'))
 					if 'message_title' in locals():
-						print('Subject:', message_title)
+						print('Subject:', message_title.encode('ascii', 'ignore'))
 					print()
 					print('This unfortunately means the contents of this message have probably not have been saved.')
 					print('If you\'d like to help resolve this error, please send the marked debug information above to me.')
@@ -1813,8 +1815,8 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 			found_field = True
 
 	if not found_field:
-		print('The script was not able to select all {}. Would you like to continue and only download the {} marked as favourite or active?'.format(item_name, item_name))
-		print('Type "continue" to only download active or favourited {}. Otherwise, the script will abort.'.format(item_name))
+		print('The script was not able to select all {}. Would you like to continue and only download the {} marked as favourite or active?'.format(item_name.encode('ascii', 'ignore'), item_name.encode('ascii', 'ignore')))
+		print('Type "continue" to only download active or favourited {}. Otherwise, the script will abort.'.format(item_name.encode('ascii', 'ignore')))
 		decision = input('Continue? ')
 		if not decision == 'continue':
 			print('Download aborted.')
