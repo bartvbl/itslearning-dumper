@@ -1254,7 +1254,16 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 
 		for info_element in test_info_elements:
 			for info_list_element in info_element:
-				info_file_contents += info_list_element[0].text_content() + ' ' + info_list_element[1].text_content() + '\n'
+				if len(info_list_element) >= 1:
+					entry_name = info_list_element[0].text_content()
+				else:
+					entry_name = ''
+				if len(info_list_element) >= 2:
+					entry_content = info_list_element[1].text_content()
+				else:
+					entry_content = ''
+				if not (entry_name == '' and entry_content == ''):
+					info_file_contents += entry_name + ' ' + entry_content + '\n'
 
 		bytesToTextFile(info_file_contents.encode('utf-8'), dumpDirectory + '/Test Information' + output_text_extension)
 
