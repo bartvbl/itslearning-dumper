@@ -1246,26 +1246,35 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 		has_submitted_answer = False
 
 	if has_submitted_answer and is_student:
-		test_info_elements = online_test_document.find_class('itsl-detailed-info')
+			
 
+		test_info_elements = online_test_document.find_class('itsl-detailed-info')
 		
 		# Extracting test information
 		info_file_contents = ''
 
 		for info_element in test_info_elements:
 			for info_list_element in info_element:
-				if len(info_list_element) >= 1:
-					entry_name = info_list_element[0].text_content()
-				else:
-					entry_name = ''
 				if len(info_list_element) >= 2:
-					entry_content = info_list_element[1].text_content()
+					info_file_contents += info_list_element[0].text_content()
+					info_file_contents += ' '
+					info_file_contents += info_list_element[1].text_content()
+					info_file_contents += '\n'
 				else:
-					entry_content = ''
-				if not (entry_name == '' and entry_content == ''):
-					info_file_contents += entry_name + ' ' + entry_content + '\n'
+					# Dump whatever is inside the line if the indication was unclear.
+					info_file_contents += info_list_element.text_content() + '\n'
 
-		bytesToTextFile(info_file_contents.encode('utf-8'), dumpDirectory + '/Test Information' + output_text_extension)
+		testIntro = online_test_document.find_class('NTT_TestDescriptionIntro')
+
+		intro_text = ''.encode('utf-8')
+		if len(testIntro > 0):
+			# Assuming there is only one of these
+			testIntro = testIntro[0]
+			intro_text += '\n\nTest Intro:\n\n'.encode('utf-8')
+			intro_text += etree.tostring(testIntro, encoding='utf-8', with_comments=False, pretty_print=True)
+
+
+		bytesToTextFile(info_file_contents.encode('utf-8') + intro_text, dumpDirectory + '/Test Information' + output_text_extension)
 
 		# Download test answers
 
