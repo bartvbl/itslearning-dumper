@@ -1,12 +1,12 @@
-# It's Learning dump script
+# It's Learning Complete Backup Tool
 
 This script was written to export data from the course management system "It's Learning", as no proper method has been supplied for this previously. 
-
-*NOTE:* This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. I've attempted to avoid these as best as I can, and the script has multiple fallback options. Thus far the script has worked successfully for a large group of people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
 
 ## What does it do?
 
 The following elements are downloaded by this script. Note that It's Learning has had an overhaul in terms of visual appearance, but did not migrate older courses to the new visual style. As such these had to be implemented separately, and are as such listed separately.
+
+To my knowledge, this list covers all major features of It's Learning.
 
 1. Internal messaging - Both the "new" and "old" inboxes are supported.
 2. Course bulletins - Both "new" and "old" flavours are downloaded. Includes comments on new-style posts. Old-style text/information widgets are also downloaded.
@@ -15,12 +15,12 @@ The following elements are downloaded by this script. Note that It's Learning ha
 5. Files - Any files published as part of the course.
 6. Surveys - Downloads all responses, and the It's Learning generated reports.
 7. Discussions - Downloads all threads, including most linked images.
-8. Online Tests - Download all answers submitted as a student.
-9. Projects. All content is dumped, although bulletin messages are not supported at this time.
+8. Online Tests - Download all answers submitted as a student, or all student submissions as a teacher.
+9. Projects - All content is dumped, including project bulletin messages.
 
 ## Running
 
-The easiest way of running this script is to head over to the Releases page (see top navigation on this page), and download a build from there.
+The easiest way of running this script is to head over to the [Releases](https://github.com/bartvbl/itslearning-dumper/releases) page and download a pre-packaged executable.
 
 Alternatively, you can follow the steps below. For detailed step-by-step instructions, see the "Beginner's user guide" section below.
 
@@ -85,10 +85,14 @@ Good luck!
 
 The following issues are known, and will most likely not be fixed:
 
-* If you're a teacher in a course which uses online tests, the answers submitted by students are not saved (hopefully coming soon).
 * Some images downloaded from places such as discussion forums are saved with filenames such as `showimage.aspx`. I have not built in automatic detection of file types, and some URL's do not provide file name information. You can rename these files to ones with a correct file extension to view them.
 * Attachments from unsent/draft messages in the old messaging system are not downloaded. 
+* Files linked or attached to forum posts are not downloaded.
 * Comments on old-style bulletins are not saved (I have not yet encountered a single course using these).
+
+## Disclaimer
+
+This script may still contain bugs. It's Learning has a number of edge cases, and I simply can't be sure my script has covered all of them. Since I am relying on page structure to extract data, unexpected differences can cause crashes. I've attempted to avoid these as best as I can, and the script has multiple fallback options. Thus far the script has worked successfully for a large group of people. I hope it does for you too, but can't give guarantees it will _actually_ do so, nor can I guarantee it catches all your data. Inspect the produced output to make sure everything you need is there.
 
 ## Contributors
 
