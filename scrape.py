@@ -1267,7 +1267,7 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 		testIntro = online_test_document.find_class('NTT_TestDescriptionIntro')
 
 		intro_text = ''.encode('utf-8')
-		if len(testIntro > 0):
+		if len(testIntro) > 0:
 			# Assuming there is only one of these
 			testIntro = testIntro[0]
 			intro_text += '\n\nTest Intro:\n\n'.encode('utf-8')
