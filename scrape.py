@@ -1271,7 +1271,7 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 			# Assuming there is only one of these
 			testIntro = testIntro[0]
 			intro_text += '\n\nTest Intro:\n\n'.encode('utf-8')
-			intro_text += etree.tostring(testIntro, encoding='utf-8', with_comments=False, pretty_print=True)
+			intro_text += etree.tostring(testIntro, encoding='utf-8', pretty_print=True)
 
 
 		bytesToTextFile(info_file_contents.encode('utf-8') + intro_text, dumpDirectory + '/Test Information' + output_text_extension)
