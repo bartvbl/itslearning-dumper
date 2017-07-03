@@ -1081,14 +1081,18 @@ def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, a
 			print('\tSaving question', question_index)
 			question_link = itslearning_root_url[institution] + question_element[0][1].get('href')
 			
+			question_title = question_element[1].text_content()
+			attempt_file_contents += 'Question ' + str(question_index) + ': ' + question_title + '\n\n'
+			
 			question_response = session.get(question_link, allow_redirects=True)
 			question_document = fromstring(question_response.text)
 
-			question_title = question_element[1].text_content()
-			question_result = question_document.find_class('question-result')[0].text_content()
-
-			attempt_file_contents += 'Question ' + str(question_index) + ': ' + question_title + '\n\n'
-			attempt_file_contents += question_result + '\n'
+			try:
+				question_result = question_document.find_class('question-result')[0].text_content()
+				attempt_file_contents += question_result + '\n'
+			except Exception:
+				# Sometimes the score can be missing. This is a workaround so at least the script can continue.
+				pass
 
 			try:
 				question_options_table = question_document.get_element_by_id('qti-choiceinteraction-container')
