@@ -1119,6 +1119,12 @@ def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, a
 					if image_URL is None: 
 						continue
 
+					# The image links produced by It's Learning for hotspot images have a bunch of spaces in front, plus a special character.
+					# removing both of those here to obtain the relative link. Direct URL's are unaffected by this because they should not
+					# contain spaces in the first place.
+					image_URL = image_URL.split(' ')[-1]
+
+
 					# Special case for relative URL's: drop the It's Learning root URL in front of it
 					if not image_URL.startswith('http'):
 						image_URL = itslearning_root_url[institution] + image_URL
