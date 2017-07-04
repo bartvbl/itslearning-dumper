@@ -870,13 +870,41 @@ def processAssignment(institution, pathThusFar, assignmentURL, session):
 
 		bytesToTextFile(assessment_file_contents, answerDumpDirectory + '/assessment.html')
 
-		
+	filter_box_present = True
+	try:
+		assignment_document.get_element_by_id('EssayAnswers_ctl00_groupFilter_filter')
+	except KeyError:
+		filter_box_present = False
+
+	# First, we'll try to disable all filters, to ensure everything is downloaded.
+	if filter_box_present:
+		filter_elements = assignment_document.get_element_by_id('EssayAnswers_ctl00_groupFilter_filter')
+		# Check all filter checkboxes
+		postback_form = None
+		for form in assignment_document.forms:
+			if '__EVENTTARGET' in form.fields:
+				postback_form = form
+				break
+
+		# There should be a postback form on every page though
+		if postback_form is not None:
+			for form_input_name in postback_form.fields:
+				if form_input_name.startswith('EssayAnswers$ctl00$groupFilter'):
+					postback_form.inputs[form_input_name].checked = True
+			# And do a postback to get a page with no filters applied
+			postback_response = doPostBack(assignmentURL, 'EssayAnswers$ctl00$groupFilter', assignment_document, postback_parameter='filter')
+			assignment_document = fromstring(postback_response.text)
 
 	answers_submitted = True
 	try:
 		assignment_document.get_element_by_id('EssayAnswers_0')
-	except KeyError:
+		# Having 2 table entries is guaranteed if there are any answers present.
+		# However, if any filters have been applied we need to ensure 
+		if len(assignment_document.get_element_by_id('EssayAnswers_1')) <= 1:
+			answers_submitted = False
+	except Exception:
 		answers_submitted = False
+		print('\tNo answers detected.')
 
 	if answers_submitted:
 		
