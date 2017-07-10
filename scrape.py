@@ -1540,12 +1540,6 @@ def processMessaging(institution, pathThusFar, session):
 		inbox_document = fromstring(messaging_response.text)
 		inbox_title = inbox_document.get_element_by_id('ctl05_TT').text_content()
 		print('\tAccessing folder {}'.format(inbox_title).encode('ascii', 'ignore'))
-
-		# DEBUG
-		if not 'ladder' in inbox_title:
-			folderID += 1
-			messaging_response = session.get(old_messaging_api_url[institution].format(folderID), allow_redirects=True)
-			continue
 		
 		boxDirectory = dumpDirectory + '/' + sanitiseFilename(inbox_title)
 		boxDirectory = makeDirectories(boxDirectory)
@@ -1573,15 +1567,27 @@ def processMessaging(institution, pathThusFar, session):
 					# Index 1: Favourite star
 					# index 2: Sender
 					# Index 3: Title
+					is_its_bug = False
 					try:
 						message_element[3][0].get('href')
 					except IndexError:
-						print(etree.tostring(message_element))
-					message_url = itslearning_root_url[institution] + message_element[3][0].get('href')
+						is_its_bug = True
+
+					if not is_its_bug:
+						message_url = itslearning_root_url[institution] + message_element[3][0].get('href')
+					else:
+						# Bug caused by having a < character in the recipients name
+						message_url = itslearning_root_url[institution] + message_element[2][0][0][0].get('href')
 					message_response = session.get(message_url, allow_redirects = True)
 					message_document = fromstring(message_response.text)
 
-					has_attachment = len(message_element[4]) != 0
+					if not is_its_bug:
+						has_attachment = len(message_element[4]) != 0
+					else:
+						print('WARNING: Its Learning has a bug in its old messaging system.')
+						print('This bug appears to have occurred in this message.')
+						print('Due to the unstable nature of this error, attachments can\'t be saved.')
+						has_attachment = False
 
 					
 					# There's a distinction between sent/received and unsent ones. In the latter case we need to grab the message from the editor
@@ -1944,7 +1950,18 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 
 	pages_remaining = True
 	while pages_remaining:
-		courseTableDivElement = all_courses_page.find_class('tablelisting')[1]
+		courseTableDivElement = None
+		for index, entry in enumerate(all_courses_page.find_class('tablelisting')):
+			try:
+				# The course table has a big div element, and a specific number of headers
+				# The latter is a necessity due to the possibility of project invitations
+				if len(entry) > 0 and len(entry[0]) > 0 and len(entry[0][0]) > 4:
+					courseTableDivElement = entry
+			except Exception:
+				pass
+		if courseTableDivElement is None:
+			raise Exception('Failed to locate the course list!')
+		
 		courseTableElement = courseTableDivElement[0]
 		if len(courseTableElement) == 2 and len(courseTableElement[1]) == 1:
 			# Table is empty
