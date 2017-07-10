@@ -1907,6 +1907,11 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
 			if index == 0:
 				continue
+			if url_column_index][0].get('href') is None:
+				print("WARNING: Skipping course/project listing, as no URL was detected.")
+				print('List element:')
+				print(etree.tostring(courseTableRowElement))
+				continue
 			# Extract the course ID from the URL
 			courseURL = courseTableRowElement[url_column_index][0].get('href').split("=")[1]
 			courseList.append(courseURL)
