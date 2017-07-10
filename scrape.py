@@ -1592,20 +1592,39 @@ def processMessaging(institution, pathThusFar, session):
 						message_sender = convert_html_content(message_header_element[0][1].text_content())
 						message_recipient = convert_html_content(message_header_element[1][1].text_content())
 						message_body = convert_html_content(etree.tostring(message_document.find_class('readMessageBody')[0][1][0][0][0], encoding='utf8').decode('utf-8'))
+						
+						# Blind copy recipient handling
+						message_blind_recipient = None
+						blind_recipient_index = -1
+						for entry_index, entry in enumerate(message_header_element):
+							if len(entry) > 0 and ('Blind' in entry[0].text_content() or 'Blindkopi' in entry[0].text_content()):
+								blind_recipient_index = entry_index
+								break
+						if blind_recipient_index != -1:
+							message_blind_recipient = convert_html_content(message_header_element[blind_recipient_index][1].text_content())
+
 						# It's Learning system messages have no link to the sender
 						if len(message_header_element[0][1]) == 0:
 							message_send_date = message_header_element[0][1].text_content()
 						else:
 							message_send_date = message_header_element[0][1][0].tail
 						if has_attachment:
-							attachment_filename = message_header_element[2][1][0].text_content()
-							message_attachment_url = message_header_element[2][1][0].get('href')
-							download_file(institution, itslearning_root_url[institution] + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
+							attachment_index = -1
+							for entry_index, entry in enumerate(message_header_element):
+								if len(entry) > 0 and ('Attachments' in entry[0].text_content() or 'Vedlegg' in entry[0].text_content()):
+									attachment_index = entry_index
+									break
+							if attachment_index != -1:
+								attachment_filename = message_header_element[attachment_index][1][0].text_content()
+								message_attachment_url = message_header_element[attachment_index][1][0].get('href')
+								download_file(institution, itslearning_root_url[institution] + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
 
 					message_file_contents = 'From: ' + message_sender + '\n'
 					message_file_contents = 'To: ' + message_recipient + '\n'
 					message_file_contents += 'Subject: ' + message_title + '\n'
 					message_file_contents += 'Sent on: ' + message_send_date + '\n'
+					if message_blind_recipient is not None:
+						message_file_contents += 'Blind copy: ' + message_blind_recipient + '\n'
 					if has_attachment:
 						message_file_contents += 'Attachment: ' + attachment_filename
 					message_file_contents += 'Message contents: \n\n' + html.unescape(message_body)
