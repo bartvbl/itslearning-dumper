@@ -80,6 +80,12 @@ parser.add_argument('--courses-only', '-F', dest='courses_only', action='store_t
 					help='Only dump courses. No internal messages or projects are saved.')
 parser.add_argument('--messages-only', '-M', dest='messaging_only', action='store_true',
 					help='Only dump internal messages. No courses or projects are saved.')
+parser.add_argument('--recreate-dump-dir', '-D', dest='recreate_out_dir', action='store_true',
+					help='Delete the output directory and recreate it (useful for debugging)')
+parser.add_argument('--username', '-U', dest='username', default=None,
+					help='Specify a username to be dumped')
+parser.add_argument('--password', '-Q', dest='password', default=None,
+					help='Specify a password of the user to be dumped')
 
 args = parser.parse_args()
 
@@ -148,6 +154,11 @@ if not args.do_listing:
 			sys.exit(0)
 		output_folder_name = os.path.abspath(output_folder_name)
 		is_directory_empty = not os.listdir(output_folder_name)
+		if args.recreate_out_dir and os.path.exists(output_folder_name):
+			print('Recreating output directory..')
+			rmtree(output_folder_name)
+			os.makedirs(output_folder_name)
+			is_directory_empty = not os.listdir(output_folder_name)
 		if not is_directory_empty:
 			print()
 			print('The selected directory is not empty, which the script needs to work properly.')
@@ -156,6 +167,11 @@ if not args.do_listing:
 			print()
 			input('Press Enter to continue and try selecting a directory again.')
 	print('Selected output folder:', output_folder_name)
+elif args.recreate_out_dir and os.path.exists(output_folder_name):
+	print('Recreating output directory..')
+	rmtree(output_folder_name)
+	os.makedirs(output_folder_name)
+
 
 # If a crash occurs, the script can skip all elements in folders up to the point where it left off. 
 # The state is stored in a small text file created inside the working directory.
@@ -1907,16 +1923,11 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 		for index, courseTableRowElement in enumerate(courseTableElement.getchildren()):
 			if index == 0:
 				continue
-			if url_column_index][0].get('href') is None:
-				print("WARNING: Skipping course/project listing, as no URL was detected.")
-				print('List element:')
-				print(etree.tostring(courseTableRowElement))
-				continue
 			# Extract the course ID from the URL
 			courseURL = courseTableRowElement[url_column_index][0].get('href').split("=")[1]
 			courseList.append(courseURL)
 			courseNameDict[courseURL] = courseTableRowElement[url_column_index][0][0].text
-		pages_remaining, course_page_response = loadPaginationPage(itsleaning_course_list[institution], all_courses_page, 5)
+		pages_remaining, course_page_response = loadPaginationPage(list_page_url[institution], all_courses_page, 5)
 		if pages_remaining:
 			all_courses_page = fromstring(course_page_response.text)
 
@@ -2037,11 +2048,18 @@ with requests.Session() as session:
 	print('Just type in your password as you normally would, and press Enter.')
 	print()
 
+	is_first_iteration = True
 	while not credentials_correct:
 		print('Please enter your NTNU/FEIDE username and password.')
 
-		username = input('Username: ')
-		password = getpass.getpass(prompt='Password: ')
+		if args.username is None and is_first_iteration:
+			username = input('Username: ')
+		else:
+			username = args.username
+		if args.password is None and is_first_iteration:
+			password = getpass.getpass(prompt='Password: ')
+		else:
+			password = args.password
 		
 		login_form.fields['feidename'] = username
 		login_form.fields['password'] = password
@@ -2058,6 +2076,7 @@ with requests.Session() as session:
 			print('Incorrect credentials!')
 		else:
 			credentials_correct = True
+		is_first_iteration = False
 
 	innsida_main_page = do_feide_relay(session, relay_response)
 
