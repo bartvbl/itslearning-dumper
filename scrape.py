@@ -800,6 +800,11 @@ def processDiscussionForum(institution, pathThusFar, discussionURL, session):
 def processAssignment(institution, pathThusFar, assignmentURL, session):
 	print("\tDownloading assignment:", assignmentURL.encode('ascii', 'ignore'))
 	assignment_response = session.get(assignmentURL, allow_redirects=True)
+
+	if itslearning_unauthorized_url[institution] in assignment_response.url:
+		print('\t Access denied. Skipping.')
+		return
+
 	assignment_document = fromstring(assignment_response.text)
 	#writeHTML(assignment_document, 'output.html')
 
@@ -1966,6 +1971,7 @@ def list_courses_or_projects(institution, session, list_page_url, form_string, u
 				# The latter is a necessity due to the possibility of project invitations
 				if len(entry) > 0 and len(entry[0]) > 0 and len(entry[0][0]) > 4:
 					courseTableDivElement = entry
+					break
 			except Exception:
 				pass
 		if courseTableDivElement is None:
