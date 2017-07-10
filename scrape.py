@@ -1540,6 +1540,12 @@ def processMessaging(institution, pathThusFar, session):
 		inbox_document = fromstring(messaging_response.text)
 		inbox_title = inbox_document.get_element_by_id('ctl05_TT').text_content()
 		print('\tAccessing folder {}'.format(inbox_title).encode('ascii', 'ignore'))
+
+		# DEBUG
+		if not 'ladder' in inbox_title:
+			folderID += 1
+			messaging_response = session.get(old_messaging_api_url[institution].format(folderID), allow_redirects=True)
+			continue
 		
 		boxDirectory = dumpDirectory + '/' + sanitiseFilename(inbox_title)
 		boxDirectory = makeDirectories(boxDirectory)
@@ -1567,6 +1573,10 @@ def processMessaging(institution, pathThusFar, session):
 					# Index 1: Favourite star
 					# index 2: Sender
 					# Index 3: Title
+					try:
+						message_element[3][0].get('href')
+					except IndexError:
+						print(etree.tostring(message_element))
 					message_url = itslearning_root_url[institution] + message_element[3][0].get('href')
 					message_response = session.get(message_url, allow_redirects = True)
 					message_document = fromstring(message_response.text)
@@ -1583,6 +1593,7 @@ def processMessaging(institution, pathThusFar, session):
 						message_title = convert_html_content(etree.tostring(form_root[0][0][2][0][1], encoding='utf8').decode('utf-8'))
 						message_body = convert_html_content(etree.tostring(form_root.get_element_by_id('_inputForm_MessageText_MessageTextEditorCKEditor_ctl00'), encoding='utf8').decode('utf-8'))
 						message_send_date = 'N/A'
+						message_blind_recipient = None
 						if has_attachment:
 							print('ATTACHMENTS IN UNSENT MESSAGES ARE NOT SUPPORTED :(')
 					else:
