@@ -270,6 +270,9 @@ base64_png_image_url = {
 base64_jpeg_image_url = {
 	'ntnu': 'https://ntnu.itslearning.comdata:image/jpeg;base64,',
 	'hist': 'https://hist.itslearning.comdata:image/jpeg;base64,'}
+itslearning_unauthorized_url = {
+	'ntnu': 'https://ntnu.itslearning.com/not_authorized.aspx',
+	'hist': 'https://hist.itslearning.com/not_authorized.aspx'}
 
 innsida_login_parameters = {'SessionExpired': 0}
 progress_file_location = os.path.join(os.getcwd(), 'saved_progress_state.txt')
@@ -1581,76 +1584,82 @@ def processMessaging(institution, pathThusFar, session):
 					message_response = session.get(message_url, allow_redirects = True)
 					message_document = fromstring(message_response.text)
 
-					if not is_its_bug:
-						has_attachment = len(message_element[4]) != 0
-					else:
-						print('WARNING: Its Learning has a bug in its old messaging system.')
-						print('This bug appears to have occurred in this message.')
-						print('Due to the unstable nature of this error, attachments can\'t be saved.')
-						has_attachment = False
-
-					
-					# There's a distinction between sent/received and unsent ones. In the latter case we need to grab the message from the editor
-					if 'sendmessage.aspx' in message_response.url:
-						form_root = message_document.get_element_by_id('_inputForm')
-						message_recipient = form_root[0][0][0][0][1].text_content()
-						message_recipient += ' ' + form_root[0][0][1][0][1].text_content()
-						message_sender = '[you]'
-						message_title = convert_html_content(etree.tostring(form_root[0][0][2][0][1], encoding='utf8').decode('utf-8'))
-						message_body = convert_html_content(etree.tostring(form_root.get_element_by_id('_inputForm_MessageText_MessageTextEditorCKEditor_ctl00'), encoding='utf8').decode('utf-8'))
-						message_send_date = 'N/A'
-						message_blind_recipient = None
-						if has_attachment:
-							print('ATTACHMENTS IN UNSENT MESSAGES ARE NOT SUPPORTED :(')
-					else:
-						message_title = message_document.get_element_by_id('ctl05_TT').text_content()
-						# Eventually these indexing series will form a binarised version of the entire works of shakespeare
-						message_header_element = message_document.find_class('readMessageHeader')[0][1]
-						message_sender = convert_html_content(message_header_element[0][1].text_content())
-						message_recipient = convert_html_content(message_header_element[1][1].text_content())
-						message_body = convert_html_content(etree.tostring(message_document.find_class('readMessageBody')[0][1][0][0][0], encoding='utf8').decode('utf-8'))
+					# In rare cases a message links to an unauthorized page. I have no idea why.
+					if not message_response.url == itslearning_unauthorized_url[institution]:
 						
-						# Blind copy recipient handling
-						message_blind_recipient = None
-						blind_recipient_index = -1
-						for entry_index, entry in enumerate(message_header_element):
-							if len(entry) > 0 and ('Blind' in entry[0].text_content() or 'Blindkopi' in entry[0].text_content()):
-								blind_recipient_index = entry_index
-								break
-						if blind_recipient_index != -1:
-							message_blind_recipient = convert_html_content(message_header_element[blind_recipient_index][1].text_content())
 
-						# It's Learning system messages have no link to the sender
-						if len(message_header_element[0][1]) == 0:
-							message_send_date = message_header_element[0][1].text_content()
+						if not is_its_bug:
+							has_attachment = len(message_element[4]) != 0
 						else:
-							message_send_date = message_header_element[0][1][0].tail
-						if has_attachment:
-							attachment_index = -1
+							print('WARNING: Its Learning has a bug in its old messaging system.')
+							print('This bug appears to have occurred in this message.')
+							print('Due to the unstable nature of this error, attachments can\'t be saved.')
+							has_attachment = False
+
+						
+						# There's a distinction between sent/received and unsent ones. In the latter case we need to grab the message from the editor
+						if 'sendmessage.aspx' in message_response.url:
+							form_root = message_document.get_element_by_id('_inputForm')
+							message_recipient = form_root[0][0][0][0][1].text_content()
+							message_recipient += ' ' + form_root[0][0][1][0][1].text_content()
+							message_sender = '[you]'
+							message_title = convert_html_content(etree.tostring(form_root[0][0][2][0][1], encoding='utf8').decode('utf-8'))
+							message_body = convert_html_content(etree.tostring(form_root.get_element_by_id('_inputForm_MessageText_MessageTextEditorCKEditor_ctl00'), encoding='utf8').decode('utf-8'))
+							message_send_date = 'N/A'
+							message_blind_recipient = None
+							if has_attachment:
+								print('ATTACHMENTS IN UNSENT MESSAGES ARE NOT SUPPORTED :(')
+						else:
+							message_title = message_document.get_element_by_id('ctl05_TT').text_content()
+							# Eventually these indexing series will form a binarised version of the entire works of shakespeare
+							message_header_element = message_document.find_class('readMessageHeader')[0][1]
+							message_sender = convert_html_content(message_header_element[0][1].text_content())
+							message_recipient = convert_html_content(message_header_element[1][1].text_content())
+							message_body = convert_html_content(etree.tostring(message_document.find_class('readMessageBody')[0][1][0][0][0], encoding='utf8').decode('utf-8'))
+							
+							# Blind copy recipient handling
+							message_blind_recipient = None
+							blind_recipient_index = -1
 							for entry_index, entry in enumerate(message_header_element):
-								if len(entry) > 0 and ('Attachments' in entry[0].text_content() or 'Vedlegg' in entry[0].text_content()):
-									attachment_index = entry_index
+								if len(entry) > 0 and ('Blind' in entry[0].text_content() or 'Blindkopi' in entry[0].text_content()):
+									blind_recipient_index = entry_index
 									break
-							if attachment_index != -1:
-								attachment_filename = message_header_element[attachment_index][1][0].text_content()
-								message_attachment_url = message_header_element[attachment_index][1][0].get('href')
-								download_file(institution, itslearning_root_url[institution] + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
+							if blind_recipient_index != -1:
+								message_blind_recipient = convert_html_content(message_header_element[blind_recipient_index][1].text_content())
 
-					message_file_contents = 'From: ' + message_sender + '\n'
-					message_file_contents = 'To: ' + message_recipient + '\n'
-					message_file_contents += 'Subject: ' + message_title + '\n'
-					message_file_contents += 'Sent on: ' + message_send_date + '\n'
-					if message_blind_recipient is not None:
-						message_file_contents += 'Blind copy: ' + message_blind_recipient + '\n'
-					if has_attachment:
-						message_file_contents += 'Attachment: ' + attachment_filename
-					message_file_contents += 'Message contents: \n\n' + html.unescape(message_body)
+							# It's Learning system messages have no link to the sender
+							if len(message_header_element[0][1]) == 0:
+								message_send_date = message_header_element[0][1].text_content()
+							else:
+								message_send_date = message_header_element[0][1][0].tail
+							if has_attachment:
+								attachment_index = -1
+								for entry_index, entry in enumerate(message_header_element):
+									if len(entry) > 0 and ('Attachments' in entry[0].text_content() or 'Vedlegg' in entry[0].text_content()):
+										attachment_index = entry_index
+										break
+								if attachment_index != -1:
+									attachment_filename = message_header_element[attachment_index][1][0].text_content()
+									message_attachment_url = message_header_element[attachment_index][1][0].get('href')
+									download_file(institution, itslearning_root_url[institution] + message_attachment_url, attachmentsDirectory, session, index=None, filename=attachment_filename, disableFilenameReencode=True)
 
-					bytesToTextFile(message_file_contents.encode('utf-8'), boxDirectory + '/Message ' + str(message_index) + ' - ' + sanitiseFilename(message_send_date) + output_text_extension)
+						message_file_contents = 'From: ' + message_sender + '\n'
+						message_file_contents = 'To: ' + message_recipient + '\n'
+						message_file_contents += 'Subject: ' + message_title + '\n'
+						message_file_contents += 'Sent on: ' + message_send_date + '\n'
+						if message_blind_recipient is not None:
+							message_file_contents += 'Blind copy: ' + message_blind_recipient + '\n'
+						if has_attachment:
+							message_file_contents += 'Attachment: ' + attachment_filename
+						message_file_contents += 'Message contents: \n\n' + html.unescape(message_body)
 
-					delay()
-					# Index 4: Has asttachments
-					# Index 5: Received on
+						bytesToTextFile(message_file_contents.encode('utf-8'), boxDirectory + '/Message ' + str(message_index) + ' - ' + sanitiseFilename(message_send_date) + output_text_extension)
+
+						delay()
+						# Index 4: Has asttachments
+						# Index 5: Received on
+					else:
+						print('WARNING: Message skipped because it linked to an unauthorized page. No idea why.')
 				except KeyError:
 					# End the loop when there are no more messages
 					messages_remaining = False
