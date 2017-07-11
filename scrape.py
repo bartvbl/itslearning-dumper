@@ -323,13 +323,13 @@ def makeDirectories(path):
 	cleaned_path = sanitisePath(path)
 	abs_path = os.path.abspath(cleaned_path)
 	if not os.path.exists(abs_path):
-		if len(abs_path) >= 254 and 'Windows' in platform.system():
+		try: 
+			os.makedirs(abs_path)
+		except FileNotFoundError:
 			print('COULD NOT CREATE A FOLDER AT: ')
 			print(abs_path.encode('ascii', 'ignore'))
-			print('Windows is unable to handle paths longer than 255 characters.')
+			print('If you\'re on Windows this can happen due to Windows being unable to handle paths longer than 255 characters.')
 			print('Any files dumped in these directories will be redirected to the overflow directory.')
-		else:
-			os.makedirs(abs_path)
 	return abs_path
 
 # Windows has this amazing feature called "255 character file path limit"
