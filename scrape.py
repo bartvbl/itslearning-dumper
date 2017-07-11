@@ -1196,6 +1196,8 @@ def processOnlineTestAttempt(institution, session, details_URL, dumpDirectory, a
 						image_URL = itslearning_root_url[institution] + image_URL
 
 					filename = download_file(institution, image_URL, attemptDirectory, session)
+					if filename is None:
+						filename = '(failed to download image)'
 					attempt_file_contents += 'Attachment image: ' + filename + '\n'
 
 					delay()
