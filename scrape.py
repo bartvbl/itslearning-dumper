@@ -641,16 +641,20 @@ def processLearningToolElement(institution, pathThusFar, elementURL, session):
 	dumpDirectory = sanitisePath(dumpDirectory)
 	dumpDirectory = makeDirectories(dumpDirectory)
 
-	frameSrc = element_document.get_element_by_id('ctl00_ContentPlaceHolder_ExtensionIframe').get('src')
+	try:
+		frameSrc = element_document.get_element_by_id('ctl00_ContentPlaceHolder_ExtensionIframe').get('src')
 
-	frame_content_response = session.get(frameSrc, allow_redirects=True)
-	bytesToTextFile(frame_content_response.content, dumpDirectory + '/page_contents' + output_text_extension)
+		frame_content_response = session.get(frameSrc, allow_redirects=True)
+		bytesToTextFile(frame_content_response.content, dumpDirectory + '/page_contents' + output_text_extension)
 
-	frame_content_document = fromstring(frame_content_response.text)
-	for file_link in frame_content_document.find_class('file-link-link'):
-		link_href = file_link[0].get('href')
-		link_filename = file_link[0].get('download')
-		download_file(institution, link_href, dumpDirectory, session, filename=link_filename)
+		frame_content_document = fromstring(frame_content_response.text)
+		for file_link in frame_content_document.find_class('file-link-link'):
+			link_href = file_link[0].get('href')
+			link_filename = file_link[0].get('download')
+			download_file(institution, link_href, dumpDirectory, session, filename=link_filename)
+	except KeyError:
+		print('\tPage appears to have abnormal page structure. Falling back on dumping entire page as-is.')
+		bytesToTextFile(etree.tostring(element_document, pretty_print=True, encoding='utf-8'), dumpDirectory + '/page_contents' + output_text_extension)
 
 def processPicture(institution, pathThusFar, pictureURL, session):
 	picture_response = session.get(pictureURL, allow_redirects=True)
