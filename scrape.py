@@ -384,9 +384,16 @@ def download_file(institution, url, destination_directory, session, index=None, 
 			base64_encoded_file_contents = url[start_index:]
 			decoded_bytes = base64.b64decode(base64_encoded_file_contents)
 			bytesToTextFile(decoded_bytes, destination_directory + '/' + base64_encoded_file_contents[0:10] + '.' + extension)
+			return
+		elif url.startswith('/'):
+			try:
+				file_download_response = session.get(itslearning_root_url[institution] + url, allow_redirects=True)
+			except Exception:
+				print('FAILED TO DOWNLOAD FILE (INVALID URL):', url.encode('ascii', 'ignore'))
+				return
 		else:
 			print('FAILED TO DOWNLOAD FILE (INVALID URL):', url.encode('ascii', 'ignore'))
-		return
+			return
 	
 	# If links are not directed to it's learning, the header format might be different
 	if filename is None:
