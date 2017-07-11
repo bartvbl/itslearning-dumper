@@ -378,12 +378,15 @@ def download_file(institution, url, destination_directory, session, index=None, 
 	except Exception:
 		# Can occur in a case of an encoded image. If so, dump it.
 		if base64_png_image_url[institution] in url or base64_jpeg_image_url[institution] in url:
-			extension = url.split(':')[2].split(';')[0].split('/')[1]
-			print('\tDownloaded Base64 encoded {} image'.format(extension).encode('ascii', 'ignore'))
-			start_index = url.index(',') + 1
-			base64_encoded_file_contents = url[start_index:]
-			decoded_bytes = base64.b64decode(base64_encoded_file_contents)
-			bytesToTextFile(decoded_bytes, destination_directory + '/' + base64_encoded_file_contents[0:10] + '.' + extension)
+			try:
+				extension = url.split(':')[2].split(';')[0].split('/')[1]
+				print('\tDownloaded Base64 encoded {} image'.format(extension).encode('ascii', 'ignore'))
+				start_index = url.index(',') + 1
+				base64_encoded_file_contents = url[start_index:]
+				decoded_bytes = base64.b64decode(base64_encoded_file_contents)
+				bytesToTextFile(decoded_bytes, destination_directory + '/' + base64_encoded_file_contents[0:10] + '.' + extension)
+			except Exception:
+				print('Base64 Image Download Failed: unknown umage formatting. Skipping.')
 			return
 		elif url.startswith('/'):
 			try:
