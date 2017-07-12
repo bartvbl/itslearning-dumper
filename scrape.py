@@ -62,7 +62,7 @@ parser = argparse.ArgumentParser(description='Download files from itslearning. C
 
 parser.add_argument('--output-dir', '-O', dest='output_dir', default=None,
 					help='Defines the directory to output files from. If left empty, the program will prompt.')
-parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=int, default=1,
+parser.add_argument('--rate-limit-delay', '-R', dest='rate_limit', type=float, default=1,
 					help="Rate limits requests to It's Learning (seconds). Defaults to 1 second.")
 parser.add_argument('--skip-to-course', '-S', dest='skip_to_course', type=int, default=0,
 					help='Skip to a course with a specific index. Useful after a crash. Set to 1 to only skip downloading internal messages.')
@@ -418,6 +418,8 @@ def download_file(institution, url, destination_directory, session, index=None, 
 		try:
 			filename = filename.encode('latin1').decode('utf-8')
 		except UnicodeDecodeError:
+			filename = initial_filename
+		except UnicodeEncodeError:
 			filename = initial_filename
 
 	# Special case where the server puts slashes in the file name
@@ -790,7 +792,23 @@ def processDiscussionForum(institution, pathThusFar, discussionURL, session):
 			while nextThreadElement is not None and nextThreadElement != False:
 				postURL = nextThreadElement[1][0].get('href')
 				postTitle = nextThreadElement[1][0].text
-				processDiscussionPost(institution, discussionDumpDirectory, itslearning_root_url[institution] + postURL, postTitle, session)
+				try:
+					processDiscussionPost(institution, discussionDumpDirectory, itslearning_root_url[institution] + postURL, postTitle, session)
+				except Exception:
+					print('\n\nSTART OF ERROR INFORMATION\n\n\n\n')
+					traceback.print_exc()
+					print('\n\n\n\nEND OF ERROR INFORMATION')
+					print()
+					print('Oh no! The script crashed while trying to download the following discussion post:')
+					print((itslearning_root_url[institution] + postURL).encode('ascii', 'ignore'))
+					print('Some information regarding the error is shown above.')
+					print('Please mail a screenshot of this information to bart.van.blokland@ntnu.no, and I can see if I can help you fix it.')
+					print('Would you like to skip this item and move on?')
+					print('Type \'skip\' if you\'d like to skip this element and continue downloading any remaining elements, or anything else if you\'d like to abort the download.')
+					decision = input('Skip this element? ')
+					if decision != 'skip':
+						print('Download has been aborted.')
+						sys.exit(0)
 				threadID += 1
 				try:
 					nextThreadElement = discussion_document.get_element_by_id('Threads_' + str(threadID))
@@ -1300,6 +1318,11 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 	online_test_response = session.get(nttUrl, allow_redirects=True)
 	online_test_document = fromstring(online_test_response.text)
 
+	# Special case for arbitrary It's Learning internal error
+	if online_test_response.status_code // 100 == 5:
+		print('It\'s Learning internal error occurred. Skipping.')
+		return
+
 	is_student = False
 	is_teacher = False
 
@@ -1310,6 +1333,7 @@ def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 
 	redirected_page_URL = online_test_response.url
 
+	
 	test_title = online_test_document.get_element_by_id('ctl05_TT').text_content()
 	print('\tDownloading Online Test:', test_title.encode('ascii', 'ignore'))
 
