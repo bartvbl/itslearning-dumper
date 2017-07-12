@@ -337,13 +337,18 @@ def makeDirectories(path):
 def dumpToOverflow(content, filename):
 	global overflow_count
 	overflow_count += 1
-	basename = os.path.basename(sanitisePath(filename))
-	overflowDirectory = output_folder_name + '/Overflowed Files'
+	filepath, basename = os.path.split(os.path.normpath(sanitisePath(filename)))
+	dirtree = filepath.split(os.sep)
+	overflowDirectory = output_folder_name + '/' + dirtree[2] + '/Overflowed Files'
 	if not os.path.exists(overflowDirectory):
 		overflowDirectory = makeDirectories(overflowDirectory)
 	total_path = sanitisePath(overflowDirectory + '/' + str(overflow_count) + '_' + basename)
 	with open(total_path, 'wb') as file:
 		file.write(content)
+	# Create a txt file with original file location
+	overflow_info_txt_filename = os.path.splitext(os.path.normpath(total_path))[0] + '.txt'
+	original_location = ('Original file path: ' + filename).encode('utf-8')
+	bytesToTextFile(original_location, overflow_info_txt_filename)
 	print('FILE WAS WRITTEN TO OVERFLOW DIRECTORY - path too long (Windows issue)')
 	print('Original file path:', filename.encode('ascii', 'ignore'))
 	print('New file path:', total_path.encode('ascii', 'ignore'))
@@ -1016,7 +1021,12 @@ def processAssignment(institution, pathThusFar, assignmentURL, session):
 
 				# Column 0: Checkbox
 				# Column 1: Student names
-				students = [link[0].text for link in submission_element[1].find_class('ccl-iconlink')]
+				try:
+					students = [link[0].text for link in submission_element[1].find_class('ccl-iconlink')]
+				except Exception:
+					students = [submission_element[1].text_content()]
+				if not students:
+					students = [submission_element[1].text_content()]
 				# Column 2: Submission date/time
 				submission_time = submission_element[2 + no_group_index_offset].text
 				# Column 3: Review date
