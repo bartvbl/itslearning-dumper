@@ -1322,7 +1322,10 @@ def dumpOnlineTestAnswerTable(institution, session, dumpDirectory, results_root_
 			print('NO DETAILS WILL BE SAVED OF THIS TEST.')
 
 
-		bytesToTextFile(attempt_file_contents.encode('utf-8'), dumpDirectory + '/' + sanitiseFilename(student_name) + '/Attempt ' + str(attempt_index) + output_text_extension)
+		try:
+			bytesToTextFile(attempt_file_contents.encode('utf-8'), dumpDirectory + '/' + sanitiseFilename(student_name) + '/Attempt ' + str(attempt_index) + output_text_extension)
+		except FileNotFoundError:
+			print('\tFailed to save attempt. Usually occurs when an attempt could not be accessed, for instance when you or a student has aborted it prematurely.')
 
 def processOnlineTest(institution, pathThusFar, nttUrl, nttID, session):
 	online_test_response = session.get(nttUrl, allow_redirects=True)
