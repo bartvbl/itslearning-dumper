@@ -2,6 +2,8 @@
 
 This script was written to export data from the course management system "It's Learning", as no proper method has been supplied for this previously. 
 
+I'm writing and supporting this program in my spare time. NTNU does not officially support or authorise this project.
+
 ## What does it do?
 
 The following elements are downloaded by this script. Note that It's Learning has had an overhaul in terms of visual appearance, but did not migrate older courses to the new visual style. As such these had to be implemented separately, and are as such listed separately.
