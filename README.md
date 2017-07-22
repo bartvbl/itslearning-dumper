@@ -1,6 +1,6 @@
 # It's Learning Complete Backup Tool
 
--- The NTNU It's Learning site has now shut down. If you need a head start to dump the It's Learning site for your institution, I recommend you fork this project to get a head start --
+-- The NTNU It's Learning site has now shut down. You should consider any data you haven't backup up as gone. If you need a head start to dump the It's Learning site for your institution, I recommend you fork this project. --
 
 This script was written to export data from the course management system "It's Learning", as no proper method has been supplied for this previously. 
 
